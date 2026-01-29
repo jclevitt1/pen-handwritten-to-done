@@ -4,6 +4,18 @@ const Footer = () => {
   return (
     <footer className="py-12 border-t border-border">
       <div className="container px-6">
+        {/* Platform note */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true }}
+          className="text-center mb-8"
+        >
+          <p className="text-sm text-muted-foreground">
+            Currently supports iOS <span className="text-foreground font-medium">UsePen</span> application. Stay tuned for more.
+          </p>
+        </motion.div>
+
         <motion.div
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
