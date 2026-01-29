@@ -45,13 +45,23 @@ const Navbar = () => {
         </div>
 
         {/* CTA */}
-        <Button
-          asChild
-          size="sm"
-          className="bg-primary text-primary-foreground hover:bg-primary/90"
-        >
-          <a href="#waitlist">Join Waitlist</a>
-        </Button>
+        <div className="flex items-center gap-3">
+          <Button
+            asChild
+            size="sm"
+            className="bg-primary text-primary-foreground hover:bg-primary/90"
+          >
+            <a href="#waitlist">Join Waitlist</a>
+          </Button>
+          <Button
+            asChild
+            variant="outline"
+            size="sm"
+            className="border-border text-foreground hover:bg-secondary"
+          >
+            <a href="#">Sign in</a>
+          </Button>
+        </div>
       </div>
     </motion.nav>
   );

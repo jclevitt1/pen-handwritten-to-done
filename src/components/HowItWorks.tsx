@@ -82,7 +82,7 @@ const steps = [
   {
     icon: Zap,
     title: "It's done",
-    description: "Code generated. Notes summarized. Project updated. Like magic.",
+    description: "Code generated. Notes summarized. Project updated.",
     visual: (
       <svg viewBox="0 0 200 120" className="w-full h-32 stroke-primary fill-none" strokeWidth="2">
         <motion.rect
@@ -146,6 +146,19 @@ const HowItWorks = () => {
           </h2>
           <p className="text-lg text-muted-foreground max-w-xl mx-auto">
             From sketch to solution in seconds.
+          </p>
+        </motion.div>
+
+        {/* Context note */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6, delay: 0.2 }}
+          className="text-center mb-12"
+        >
+          <p className="text-sm text-muted-foreground max-w-2xl mx-auto px-4 py-3 rounded-full border border-border bg-card/50 inline-block">
+            We keep records of your existing projects, or you can upload projects you want to work on from your notes.
           </p>
         </motion.div>
 
