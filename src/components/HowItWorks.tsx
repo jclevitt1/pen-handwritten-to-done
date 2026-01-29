@@ -158,7 +158,7 @@ const HowItWorks = () => {
           className="text-center mb-12"
         >
           <p className="text-sm text-muted-foreground max-w-2xl mx-auto px-4 py-3 rounded-full border border-border bg-card/50 inline-block">
-            We keep records of your existing projects, or you can upload projects you want to work on from your notes.
+            From notes → execution. You may upload any existing project you want Pen to work on, and select it from your notes.
           </p>
         </motion.div>
 
