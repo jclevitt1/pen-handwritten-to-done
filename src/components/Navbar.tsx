@@ -1,7 +1,13 @@
+import { useAuth, useUser } from "@clerk/clerk-react";
 import { motion } from "framer-motion";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 
 const Navbar = () => {
+  const { isSignedIn, isLoaded } = useAuth();
+  const { user } = useUser();
+  const navigate = useNavigate();
+
   return (
     <motion.nav
       initial={{ opacity: 0, y: -20 }}
@@ -11,7 +17,7 @@ const Navbar = () => {
     >
       <div className="container px-6 h-16 flex items-center justify-between">
         {/* Logo */}
-        <a href="#" className="flex items-center gap-2">
+        <a href="/" className="flex items-center gap-2">
           <svg
             width="28"
             height="28"
@@ -46,21 +52,35 @@ const Navbar = () => {
 
         {/* CTA */}
         <div className="flex items-center gap-3">
-          <Button
-            asChild
-            size="sm"
-            className="bg-primary text-primary-foreground hover:bg-primary/90"
-          >
-            <a href="#waitlist">Join Waitlist</a>
-          </Button>
-          <Button
-            asChild
-            variant="outline"
-            size="sm"
-            className="border-border text-foreground hover:bg-secondary"
-          >
-            <a href="#">Sign in</a>
-          </Button>
+          {isLoaded && isSignedIn ? (
+            // Signed in: show dashboard button
+            <Button
+              size="sm"
+              className="bg-primary text-primary-foreground hover:bg-primary/90"
+              onClick={() => navigate('/dashboard')}
+            >
+              {user?.firstName ? `Hi, ${user.firstName}` : 'Dashboard'}
+            </Button>
+          ) : (
+            // Not signed in: show waitlist + sign in
+            <>
+              <Button
+                asChild
+                size="sm"
+                className="bg-primary text-primary-foreground hover:bg-primary/90"
+              >
+                <a href="#waitlist">Join Waitlist</a>
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="border-border text-foreground hover:bg-secondary"
+                onClick={() => navigate('/sign-in')}
+              >
+                Sign in
+              </Button>
+            </>
+          )}
         </div>
       </div>
     </motion.nav>
