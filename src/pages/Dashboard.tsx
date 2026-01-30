@@ -120,12 +120,18 @@ const Dashboard = () => {
             </div>
           ) : error ? (
             <div className="text-center py-20">
+              <Folder className="w-16 h-16 mx-auto mb-4 text-muted-foreground/50" />
+              <h2 className="text-xl font-semibold mb-2">Unable to load projects</h2>
               <p className="text-muted-foreground mb-4">
-                {error instanceof Error ? error.message : 'Failed to load projects'}
+                Something went wrong. Please try again later.
               </p>
-              <p className="text-sm text-muted-foreground">
-                Make sure the backend is running at {api.baseUrl}
-              </p>
+              <Button
+                variant="outline"
+                onClick={() => window.location.reload()}
+                className="mb-4"
+              >
+                Retry
+              </Button>
             </div>
           ) : projects.length === 0 ? (
             <div className="text-center py-20">
