@@ -1,6 +1,2 @@
 name = "pen-handwritten-to-done"
 pages_build_output_dir = "dist"
-
-# Disable Pages Functions (we don't use them)
-[build]
-command = ""
