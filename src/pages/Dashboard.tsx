@@ -57,7 +57,7 @@ const Dashboard = () => {
   const handleDownload = async (file: ProjectFile) => {
     if (!selectedProject) return;
     try {
-      const result = await api.getDownloadUrl(selectedProject.project_id, file.key);
+      const result = await api.getDownloadUrl(selectedProject.project_id, file.name);
       // Create a hidden anchor to trigger actual download
       const link = document.createElement('a');
       link.href = result.download_url;
@@ -225,7 +225,7 @@ const Dashboard = () => {
                 <div className="space-y-2 max-h-64 overflow-y-auto mb-4">
                   {projectFiles.map((file) => (
                     <button
-                      key={file.key}
+                      key={file.id}
                       onClick={() => handleDownload(file)}
                       className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors text-left"
                     >

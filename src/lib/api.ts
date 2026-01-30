@@ -25,10 +25,11 @@ export interface Project {
 }
 
 export interface ProjectFile {
-  key: string;
-  name: string;
+  id: string;      // Full S3 key
+  name: string;    // Just the filename
+  path: string;    // S3 key without bucket prefix
+  mime_type?: string;
   size: number;
-  last_modified: string;
 }
 
 export interface Job {
