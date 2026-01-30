@@ -1,18 +1,21 @@
 import { useAuth, useUser } from '@clerk/clerk-react';
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
-import { Folder, Plus, Search, LogOut, Loader2 } from 'lucide-react';
+import { Folder, Plus, Search, LogOut, Loader2, Download, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { api, Project } from '@/lib/api';
+import { api, Project, ProjectFile } from '@/lib/api';
 
 const Dashboard = () => {
   const { isLoaded, isSignedIn, signOut, getToken } = useAuth();
   const { user } = useUser();
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
+  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+  const [projectFiles, setProjectFiles] = useState<ProjectFile[]>([]);
+  const [loadingFiles, setLoadingFiles] = useState(false);
 
   // Set up API token getter
   useEffect(() => {
@@ -35,6 +38,31 @@ const Dashboard = () => {
   });
 
   const projects = data?.projects ?? [];
+
+  // Handle project click - open download dialog
+  const handleProjectClick = async (project: Project) => {
+    setSelectedProject(project);
+    setLoadingFiles(true);
+    try {
+      const result = await api.listProjectFiles(project.project_id);
+      setProjectFiles(result.files || []);
+    } catch (e) {
+      console.error('Failed to load files:', e);
+      setProjectFiles([]);
+    }
+    setLoadingFiles(false);
+  };
+
+  // Handle file download
+  const handleDownload = async (file: ProjectFile) => {
+    if (!selectedProject) return;
+    try {
+      const result = await api.getDownloadUrl(selectedProject.project_id, file.id);
+      window.open(result.download_url, '_blank');
+    } catch (e) {
+      console.error('Failed to get download URL:', e);
+    }
+  };
 
   if (!isLoaded) {
     return (
@@ -148,17 +176,59 @@ const Dashboard = () => {
           ) : (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {projects.map((project) => (
-                <ProjectCard key={project.project_id} project={project} />
+                <ProjectCard
+                  key={project.project_id}
+                  project={project}
+                  onClick={() => handleProjectClick(project)}
+                />
               ))}
             </div>
           )}
         </motion.div>
       </main>
+
+      {/* Download Dialog */}
+      {selectedProject && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setSelectedProject(null)}>
+          <div className="bg-card rounded-lg p-6 max-w-md w-full mx-4 shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-semibold">{selectedProject.name}</h2>
+              <button onClick={() => setSelectedProject(null)} className="text-muted-foreground hover:text-foreground">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {loadingFiles ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="w-6 h-6 animate-spin text-primary" />
+              </div>
+            ) : projectFiles.length === 0 ? (
+              <p className="text-muted-foreground text-center py-8">No files found</p>
+            ) : (
+              <div className="space-y-2 max-h-64 overflow-y-auto">
+                {projectFiles.map((file) => (
+                  <button
+                    key={file.id}
+                    onClick={() => handleDownload(file)}
+                    className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors text-left"
+                  >
+                    <Download className="w-4 h-4 text-muted-foreground" />
+                    <span className="flex-1 truncate">{file.name}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {file.size ? `${(file.size / 1024).toFixed(1)} KB` : ''}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
 
-const ProjectCard = ({ project }: { project: Project }) => {
+const ProjectCard = ({ project, onClick }: { project: Project; onClick: () => void }) => {
   const languageColors: Record<string, string> = {
     python: 'bg-blue-500',
     java: 'bg-orange-500',
@@ -170,6 +240,7 @@ const ProjectCard = ({ project }: { project: Project }) => {
   return (
     <motion.div
       whileHover={{ scale: 1.02 }}
+      onClick={onClick}
       className="p-6 rounded-lg border border-border bg-card hover:border-primary/50 transition-colors cursor-pointer"
     >
       <div className="flex items-start justify-between mb-4">

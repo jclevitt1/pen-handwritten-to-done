@@ -126,6 +126,12 @@ class ApiClient {
     );
   }
 
+  async getDownloadUrl(projectId: string, fileKey: string) {
+    return this.request<{ download_url: string; file_key: string; expires_in: number }>(
+      `/projects/${projectId}/download?file_key=${encodeURIComponent(fileKey)}`
+    );
+  }
+
   // Jobs
   async listJobs() {
     return this.request<{ jobs: Job[] }>('/jobs');
