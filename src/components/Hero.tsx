@@ -121,50 +121,6 @@ const Hero = () => {
           </motion.p>
         </div>
         
-        {/* Hero visual */}
-        <motion.div
-          initial={{ opacity: 0, y: 40 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.4 }}
-          className="mt-16 md:mt-24 max-w-3xl mx-auto"
-        >
-          <div className="relative rounded-2xl border border-border bg-card/50 backdrop-blur-sm p-8 md:p-12 overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent" />
-            
-            {/* Sketch to result visualization */}
-            <div className="relative flex flex-col md:flex-row items-center justify-center gap-8">
-              {/* Handwritten side */}
-              <div className="flex-1 text-center">
-                <div className="font-handwriting text-3xl md:text-4xl text-primary leading-relaxed">
-                  create a login page<br />
-                  with email & password
-                </div>
-                <p className="mt-4 text-sm text-muted-foreground">Your sketch</p>
-              </div>
-              
-              {/* Arrow */}
-              <motion.div
-                animate={{ x: [0, 5, 0] }}
-                transition={{ duration: 2, repeat: Infinity }}
-                className="hidden md:block"
-              >
-                <ArrowRight className="w-8 h-8 text-primary" />
-              </motion.div>
-              
-              {/* Result side */}
-              <div className="flex-1 text-center">
-                <div className="bg-secondary/50 rounded-lg p-4 font-mono text-sm text-left">
-                  <span className="text-primary">const</span> LoginPage = () =&gt; {"{"}
-                  <br />
-                  {"  "}<span className="text-muted-foreground">// Generated code...</span>
-                  <br />
-                  {"}"};
-                </div>
-                <p className="mt-4 text-sm text-muted-foreground">Working code</p>
-              </div>
-            </div>
-          </div>
-        </motion.div>
       </div>
     </section>
   );
