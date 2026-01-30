@@ -70,13 +70,20 @@ const Dashboard = () => {
     }
   };
 
-  // Handle download all files
+  // Handle download all files as zip
   const handleDownloadAll = async () => {
-    if (!selectedProject || projectFiles.length === 0) return;
-    for (const file of projectFiles) {
-      await handleDownload(file);
-      // Small delay between downloads to avoid browser blocking
-      await new Promise(resolve => setTimeout(resolve, 300));
+    if (!selectedProject) return;
+    try {
+      const result = await api.getDownloadZipUrl(selectedProject.project_id);
+      // Trigger download
+      const link = document.createElement('a');
+      link.href = result.download_url;
+      link.download = result.filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (e) {
+      console.error('Failed to download zip:', e);
     }
   };
 
@@ -242,7 +249,7 @@ const Dashboard = () => {
                   className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
                 >
                   <Download className="w-4 h-4 mr-2" />
-                  Download All ({projectFiles.length} files)
+                  Download as Zip
                 </Button>
               </>
             )}

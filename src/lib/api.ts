@@ -133,6 +133,12 @@ class ApiClient {
     );
   }
 
+  async getDownloadZipUrl(projectId: string) {
+    return this.request<{ download_url: string; filename: string; file_count: number; expires_in: number }>(
+      `/projects/${projectId}/download-zip`
+    );
+  }
+
   // Jobs
   async listJobs() {
     return this.request<{ jobs: Job[] }>('/jobs');
