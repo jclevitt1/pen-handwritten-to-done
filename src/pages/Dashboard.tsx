@@ -124,7 +124,7 @@ const Dashboard = () => {
                 {error instanceof Error ? error.message : 'Failed to load projects'}
               </p>
               <p className="text-sm text-muted-foreground">
-                Make sure the backend is running at {api.toString()}
+                Make sure the backend is running at {api.baseUrl}
               </p>
             </div>
           ) : projects.length === 0 ? (

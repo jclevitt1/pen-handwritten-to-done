@@ -48,6 +48,11 @@ export interface Job {
 class ApiClient {
   private getToken: (() => Promise<string | null>) | null = null;
 
+  // Expose base URL for error messages
+  get baseUrl() {
+    return BASE_URL;
+  }
+
   setTokenGetter(getter: () => Promise<string | null>) {
     this.getToken = getter;
   }
