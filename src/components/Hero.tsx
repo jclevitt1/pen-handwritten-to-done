@@ -80,7 +80,7 @@ const Hero = () => {
             transition={{ duration: 0.6, delay: 0.2 }}
             className="text-xl md:text-2xl text-muted-foreground max-w-2xl mx-auto mb-12"
           >
-            Your handwriting becomes reality. Code, summaries, edits—just draw what you want.
+            Business plans, code, summaries, edits. Just write what you need.
           </motion.p>
           
           {/* Email signup */}
