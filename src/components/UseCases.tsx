@@ -88,11 +88,11 @@ const UseCases = () => {
                         className={`h-full rounded-3xl border border-border bg-gradient-to-br ${useCase.color} backdrop-blur-sm p-6 md:p-10 flex flex-col md:flex-row items-center gap-6 md:gap-10`}
                       >
                         {/* Illustration */}
-                        <div className="w-full md:w-1/2 h-40 md:h-full flex items-center justify-center overflow-hidden rounded-xl">
+                        <div className="w-full md:w-1/2 h-40 md:h-full flex items-center justify-center rounded-xl">
                           <img 
                             src={useCase.image} 
                             alt={useCase.title}
-                            className="w-full h-full object-cover"
+                            className="w-full h-full object-contain"
                           />
                         </div>
 
