@@ -4,8 +4,8 @@ import { Pencil, Brain, Zap } from "lucide-react";
 const steps = [
   {
     icon: Pencil,
-    title: "Write anything",
-    description: "Sketch your idea, jot a note, draw a diagram. Use your natural handwriting.",
+    title: "Write with Pencil",
+    description: "Grab your Apple Pencil and sketch ideas, jot notes, or draw diagrams naturally.",
     visual: (
       <svg viewBox="0 0 200 120" className="w-full h-32 stroke-primary fill-none" strokeWidth="2">
         <motion.path
