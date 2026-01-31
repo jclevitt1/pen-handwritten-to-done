@@ -83,7 +83,7 @@ const Hero = () => {
             transition={{ duration: 0.6, delay: 0.1 }}
             className="text-5xl md:text-7xl lg:text-8xl font-bold tracking-tight mb-6"
           >
-            Write it with Apple Pencil.{" "}
+            Write it.{" "}
             <span className="font-handwriting text-gradient">Get it done.</span>
           </motion.h1>
           
@@ -94,7 +94,7 @@ const Hero = () => {
             transition={{ duration: 0.6, delay: 0.2 }}
             className="text-xl md:text-2xl text-muted-foreground max-w-2xl mx-auto mb-12"
           >
-            Sketch your idea with Apple Pencil. Get working code, plans, and more.
+            Write it with Apple Pencil. Get it done.
           </motion.p>
           
           {/* Email signup */}
