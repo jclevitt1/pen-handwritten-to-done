@@ -4,8 +4,8 @@ import { Pencil, Brain, Zap } from "lucide-react";
 const steps = [
   {
     icon: Pencil,
-    title: "Write with Pencil",
-    description: "Grab your Apple Pencil and sketch ideas, jot notes, or draw diagrams naturally.",
+    title: "Write or upload",
+    description: "Sketch ideas with Apple Pencil, jot notes, or drop in an existing project folder.",
     visual: (
       <svg viewBox="0 0 200 120" className="w-full h-32 stroke-primary fill-none" strokeWidth="2">
         <motion.path
@@ -44,8 +44,8 @@ const steps = [
   },
   {
     icon: Brain,
-    title: "AI understands",
-    description: "It reads your handwriting and figures out exactly what you need.",
+    title: "Pen understands",
+    description: "It reads your handwriting, sees your files, and figures out what you need.",
     visual: (
       <svg viewBox="0 0 200 120" className="w-full h-32 stroke-primary fill-none" strokeWidth="2">
         <motion.circle
@@ -82,7 +82,7 @@ const steps = [
   {
     icon: Zap,
     title: "It's done",
-    description: "Code generated. Notes summarized. Project updated.",
+    description: "Meeting notes become action items. Sketches become working code. Edits get applied. Whatever makes sense.",
     visual: (
       <svg viewBox="0 0 200 120" className="w-full h-32 stroke-primary fill-none" strokeWidth="2">
         <motion.rect
@@ -144,8 +144,11 @@ const HowItWorks = () => {
           <h2 className="text-3xl md:text-5xl font-bold mb-4 pb-1">
             How it <span className="font-handwriting text-gradient">works</span>
           </h2>
-          <p className="text-lg text-muted-foreground max-w-xl mx-auto">
-            From sketch to solution in seconds.
+          <p className="text-lg text-muted-foreground max-w-xl mx-auto mb-4">
+            From notes to done.
+          </p>
+          <p className="text-base text-muted-foreground max-w-2xl mx-auto">
+            Bring your own projects, documents, or start fresh. Pen works with what you already have.
           </p>
         </motion.div>
 
