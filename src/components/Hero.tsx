@@ -94,7 +94,7 @@ const Hero = () => {
             transition={{ duration: 0.6, delay: 0.2 }}
             className="text-xl md:text-2xl text-muted-foreground max-w-2xl mx-auto mb-12"
           >
-            Write it with Apple Pencil. Get it done.
+            Handwrite anything. Watch it happen.
           </motion.p>
           
           {/* Email signup */}
