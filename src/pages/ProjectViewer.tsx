@@ -1,0 +1,235 @@
+import { useAuth } from '@clerk/clerk-react';
+import { useQuery } from '@tanstack/react-query';
+import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { ArrowLeft, Download, Loader2, ExternalLink } from 'lucide-react';
+import CodeMirror from '@uiw/react-codemirror';
+import { javascript } from '@codemirror/lang-javascript';
+import { python } from '@codemirror/lang-python';
+import { html } from '@codemirror/lang-html';
+import { css } from '@codemirror/lang-css';
+import { json } from '@codemirror/lang-json';
+import { markdown } from '@codemirror/lang-markdown';
+import { Button } from '@/components/ui/button';
+import { FileTree } from '@/components/FileTree';
+import { api, Project, ProjectFile } from '@/lib/api';
+
+// Get language extension based on file extension
+function getLanguageExtension(filename: string) {
+  const ext = filename.split('.').pop()?.toLowerCase();
+  switch (ext) {
+    case 'js':
+    case 'jsx':
+    case 'ts':
+    case 'tsx':
+      return javascript({ jsx: true, typescript: ext?.includes('t') });
+    case 'py':
+      return python();
+    case 'html':
+      return html();
+    case 'css':
+    case 'scss':
+      return css();
+    case 'json':
+      return json();
+    case 'md':
+    case 'markdown':
+      return markdown();
+    default:
+      return [];
+  }
+}
+
+export default function ProjectViewer() {
+  const { projectId } = useParams<{ projectId: string }>();
+  const navigate = useNavigate();
+  const { isLoaded, isSignedIn, getToken } = useAuth();
+  const [selectedFile, setSelectedFile] = useState<ProjectFile | null>(null);
+  const [fileContent, setFileContent] = useState<string>('');
+  const [loadingContent, setLoadingContent] = useState(false);
+
+  // Set up API token getter
+  useEffect(() => {
+    api.setTokenGetter(() => getToken());
+  }, [getToken]);
+
+  // Redirect if not signed in
+  useEffect(() => {
+    if (isLoaded && !isSignedIn) {
+      navigate('/sign-in');
+    }
+  }, [isLoaded, isSignedIn, navigate]);
+
+  // Fetch project details
+  const { data: project, isLoading: loadingProject } = useQuery({
+    queryKey: ['project', projectId],
+    queryFn: () => api.getProject(projectId!),
+    enabled: isSignedIn && !!projectId,
+  });
+
+  // Fetch project files
+  const { data: filesData, isLoading: loadingFiles } = useQuery({
+    queryKey: ['projectFiles', projectId],
+    queryFn: () => api.listProjectFiles(projectId!),
+    enabled: isSignedIn && !!projectId,
+  });
+
+  const files = filesData?.files ?? [];
+
+  // Load file content when selected
+  useEffect(() => {
+    if (!selectedFile || !projectId) return;
+
+    const loadContent = async () => {
+      setLoadingContent(true);
+      try {
+        const result = await api.getDownloadUrl(projectId, selectedFile.name);
+        const response = await fetch(result.download_url);
+        const text = await response.text();
+        setFileContent(text);
+      } catch (e) {
+        console.error('Failed to load file content:', e);
+        setFileContent('// Failed to load file content');
+      }
+      setLoadingContent(false);
+    };
+
+    loadContent();
+  }, [selectedFile, projectId]);
+
+  // Auto-select first file
+  useEffect(() => {
+    if (files.length > 0 && !selectedFile) {
+      // Prefer README or main file
+      const readme = files.find(f => f.name.toLowerCase().includes('readme'));
+      const main = files.find(f => f.name.includes('main.'));
+      setSelectedFile(readme || main || files[0]);
+    }
+  }, [files, selectedFile]);
+
+  // Handle download zip
+  const handleDownloadZip = async () => {
+    if (!projectId) return;
+    try {
+      const result = await api.getDownloadZipUrl(projectId);
+      const link = document.createElement('a');
+      link.href = result.download_url;
+      link.download = result.filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (e) {
+      console.error('Failed to download zip:', e);
+    }
+  };
+
+  if (!isLoaded || loadingProject || loadingFiles) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!project) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-xl font-semibold mb-2">Project not found</h2>
+          <Link to="/dashboard" className="text-primary hover:underline">
+            Back to Dashboard
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="h-screen bg-background flex flex-col">
+      {/* Header */}
+      <header className="border-b border-border/50 bg-background/80 backdrop-blur-lg shrink-0">
+        <div className="px-4 h-14 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Button variant="ghost" size="sm" onClick={() => navigate('/dashboard')}>
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back
+            </Button>
+            <div>
+              <h1 className="font-semibold">{project.name}</h1>
+              {project.description && (
+                <p className="text-xs text-muted-foreground truncate max-w-md">
+                  {project.description}
+                </p>
+              )}
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground">
+              {files.length} files
+            </span>
+            <Button variant="outline" size="sm" onClick={handleDownloadZip}>
+              <Download className="w-4 h-4 mr-2" />
+              Download Zip
+            </Button>
+          </div>
+        </div>
+      </header>
+
+      {/* Main content */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* File tree sidebar */}
+        <div className="w-64 border-r border-border bg-muted/30 overflow-y-auto shrink-0">
+          <div className="p-2 border-b border-border">
+            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              Files
+            </span>
+          </div>
+          <FileTree
+            files={files}
+            selectedFile={selectedFile}
+            onSelectFile={setSelectedFile}
+          />
+        </div>
+
+        {/* Editor pane */}
+        <div className="flex-1 flex flex-col overflow-hidden">
+          {selectedFile ? (
+            <>
+              {/* File tab */}
+              <div className="h-10 border-b border-border bg-muted/30 flex items-center px-4 shrink-0">
+                <span className="text-sm">{selectedFile.name}</span>
+                {selectedFile.size && (
+                  <span className="text-xs text-muted-foreground ml-2">
+                    ({(selectedFile.size / 1024).toFixed(1)} KB)
+                  </span>
+                )}
+              </div>
+
+              {/* Code editor */}
+              <div className="flex-1 overflow-hidden">
+                {loadingContent ? (
+                  <div className="h-full flex items-center justify-center">
+                    <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                  </div>
+                ) : (
+                  <CodeMirror
+                    value={fileContent}
+                    height="100%"
+                    extensions={[getLanguageExtension(selectedFile.name)]}
+                    editable={false}
+                    theme="dark"
+                    className="h-full"
+                  />
+                )}
+              </div>
+            </>
+          ) : (
+            <div className="h-full flex items-center justify-center text-muted-foreground">
+              Select a file to view
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}

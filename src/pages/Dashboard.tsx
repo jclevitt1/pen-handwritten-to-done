@@ -1,21 +1,18 @@
 import { useAuth, useUser } from '@clerk/clerk-react';
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
-import { Folder, Plus, Search, LogOut, Loader2, Download, X } from 'lucide-react';
+import { Folder, Plus, Search, LogOut, Loader2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { api, Project, ProjectFile } from '@/lib/api';
+import { api, Project } from '@/lib/api';
 
 const Dashboard = () => {
   const { isLoaded, isSignedIn, signOut, getToken } = useAuth();
   const { user } = useUser();
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
-  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
-  const [projectFiles, setProjectFiles] = useState<ProjectFile[]>([]);
-  const [loadingFiles, setLoadingFiles] = useState(false);
 
   // Set up API token getter
   useEffect(() => {
@@ -39,52 +36,9 @@ const Dashboard = () => {
 
   const projects = data?.projects ?? [];
 
-  // Handle project click - open download dialog
-  const handleProjectClick = async (project: Project) => {
-    setSelectedProject(project);
-    setLoadingFiles(true);
-    try {
-      const result = await api.listProjectFiles(project.project_id);
-      setProjectFiles(result.files || []);
-    } catch (e) {
-      console.error('Failed to load files:', e);
-      setProjectFiles([]);
-    }
-    setLoadingFiles(false);
-  };
-
-  // Handle file download
-  const handleDownload = async (file: ProjectFile) => {
-    if (!selectedProject) return;
-    try {
-      const result = await api.getDownloadUrl(selectedProject.project_id, file.name);
-      // Create a hidden anchor to trigger actual download
-      const link = document.createElement('a');
-      link.href = result.download_url;
-      link.download = file.name;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    } catch (e) {
-      console.error('Failed to get download URL:', e);
-    }
-  };
-
-  // Handle download all files as zip
-  const handleDownloadAll = async () => {
-    if (!selectedProject) return;
-    try {
-      const result = await api.getDownloadZipUrl(selectedProject.project_id);
-      // Trigger download
-      const link = document.createElement('a');
-      link.href = result.download_url;
-      link.download = result.filename;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    } catch (e) {
-      console.error('Failed to download zip:', e);
-    }
+  // Handle project click - navigate to project viewer
+  const handleProjectClick = (project: Project) => {
+    navigate(`/project/${project.project_id}`);
   };
 
   if (!isLoaded) {
@@ -209,53 +163,6 @@ const Dashboard = () => {
           )}
         </motion.div>
       </main>
-
-      {/* Download Dialog */}
-      {selectedProject && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setSelectedProject(null)}>
-          <div className="bg-card rounded-lg p-6 max-w-md w-full mx-4 shadow-xl" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold">{selectedProject.name}</h2>
-              <button onClick={() => setSelectedProject(null)} className="text-muted-foreground hover:text-foreground">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {loadingFiles ? (
-              <div className="flex items-center justify-center py-8">
-                <Loader2 className="w-6 h-6 animate-spin text-primary" />
-              </div>
-            ) : projectFiles.length === 0 ? (
-              <p className="text-muted-foreground text-center py-8">No files found</p>
-            ) : (
-              <>
-                <div className="space-y-2 max-h-64 overflow-y-auto mb-4">
-                  {projectFiles.map((file) => (
-                    <button
-                      key={file.id}
-                      onClick={() => handleDownload(file)}
-                      className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors text-left"
-                    >
-                      <Download className="w-4 h-4 text-muted-foreground" />
-                      <span className="flex-1 truncate">{file.name}</span>
-                      <span className="text-xs text-muted-foreground">
-                        {file.size ? `${(file.size / 1024).toFixed(1)} KB` : ''}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-                <Button
-                  onClick={handleDownloadAll}
-                  className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
-                >
-                  <Download className="w-4 h-4 mr-2" />
-                  Download as Zip
-                </Button>
-              </>
-            )}
-          </div>
-        </div>
-      )}
     </div>
   );
 };
