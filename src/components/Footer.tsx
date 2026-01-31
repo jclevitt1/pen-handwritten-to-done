@@ -11,9 +11,14 @@ const Footer = () => {
           viewport={{ once: true }}
           className="text-center mb-8"
         >
-          <p className="text-sm text-muted-foreground">
-            Currently supports iOS <span className="text-foreground font-medium">UsePen</span> application. Stay tuned for more.
-          </p>
+          <div className="inline-flex items-center gap-3 px-5 py-3 rounded-full border border-border bg-card/50">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className="text-primary">
+              <path d="M20.5 3.5L3.5 20.5M20.5 3.5L16 3.5M20.5 3.5V8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            <p className="text-sm text-muted-foreground">
+              Available on <span className="text-foreground font-medium">iPad</span> with Apple Pencil via the <span className="text-primary font-medium">UsePen</span> app
+            </p>
+          </div>
         </motion.div>
 
         <motion.div

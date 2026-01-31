@@ -52,10 +52,24 @@ const Hero = () => {
       <div className="container relative z-10 px-6 py-24 md:py-32">
         <div className="max-w-4xl mx-auto text-center">
           {/* Badge */}
+          {/* iPad + Apple Pencil badge */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-primary/30 bg-primary/5 backdrop-blur-sm mb-4"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="text-primary">
+              <path d="M20.5 3.5L3.5 20.5M20.5 3.5L16 3.5M20.5 3.5V8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            <span className="text-sm font-medium text-primary">Built for iPad + Apple Pencil</span>
+          </motion.div>
+          
+          {/* Early access badge */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.1 }}
             className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-border bg-card/50 backdrop-blur-sm mb-8"
           >
             <Sparkles className="w-4 h-4 text-primary" />
@@ -80,7 +94,7 @@ const Hero = () => {
             transition={{ duration: 0.6, delay: 0.2 }}
             className="text-xl md:text-2xl text-muted-foreground max-w-2xl mx-auto mb-12"
           >
-            Business plans, code, summaries, edits. Just write what you need.
+            Sketch your idea with Apple Pencil. Get working code, plans, and more.
           </motion.p>
           
           {/* Email signup */}
