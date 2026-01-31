@@ -4,8 +4,8 @@ import { FolderUp, Pencil, Brain, Zap } from "lucide-react";
 const steps = [
   {
     icon: FolderUp,
-    title: "Start or upload",
-    description: "Create a new project or drop in any folder from your computer. Any folder works — code, documents, whatever you've got.",
+    title: "Upload or start new",
+    description: "Create a new project or drop in any folder from your computer. Code, documents, whatever you've got.",
     visual: (
       <svg viewBox="0 0 200 120" className="w-full h-32 stroke-primary fill-none" strokeWidth="2">
         {/* Folder base */}
