@@ -1,11 +1,60 @@
 import { motion } from "framer-motion";
-import { Pencil, Brain, Zap } from "lucide-react";
+import { FolderUp, Pencil, Brain, Zap } from "lucide-react";
 
 const steps = [
   {
+    icon: FolderUp,
+    title: "Start or upload",
+    description: "Create a new project or drop in any folder from your computer. Any folder works — code, documents, whatever you've got.",
+    visual: (
+      <svg viewBox="0 0 200 120" className="w-full h-32 stroke-primary fill-none" strokeWidth="2">
+        {/* Folder base */}
+        <motion.path
+          d="M30 45 L30 95 L170 95 L170 45 L100 45 L90 35 L40 35 L30 45 Z"
+          initial={{ pathLength: 0, opacity: 0 }}
+          whileInView={{ pathLength: 1, opacity: 1 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.8 }}
+        />
+        {/* Upload arrow */}
+        <motion.path
+          d="M100 85 L100 55"
+          initial={{ pathLength: 0 }}
+          whileInView={{ pathLength: 1 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.4, delay: 0.6 }}
+          strokeWidth="3"
+        />
+        <motion.path
+          d="M85 70 L100 55 L115 70"
+          initial={{ pathLength: 0 }}
+          whileInView={{ pathLength: 1 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.3, delay: 0.9 }}
+          strokeWidth="3"
+        />
+        {/* Small files floating in */}
+        <motion.rect
+          x="50" y="15" width="20" height="25" rx="2"
+          initial={{ y: -20, opacity: 0 }}
+          whileInView={{ y: 15, opacity: 0.5 }}
+          viewport={{ once: true }}
+          transition={{ delay: 1.1, duration: 0.4 }}
+        />
+        <motion.rect
+          x="130" y="10" width="20" height="25" rx="2"
+          initial={{ y: -20, opacity: 0 }}
+          whileInView={{ y: 10, opacity: 0.5 }}
+          viewport={{ once: true }}
+          transition={{ delay: 1.3, duration: 0.4 }}
+        />
+      </svg>
+    ),
+  },
+  {
     icon: Pencil,
-    title: "Write or upload",
-    description: "Sketch ideas with Apple Pencil, jot notes, or drop in an existing project folder.",
+    title: "Write",
+    description: "Sketch ideas with Apple Pencil, jot notes, or describe what you need.",
     visual: (
       <svg viewBox="0 0 200 120" className="w-full h-32 stroke-primary fill-none" strokeWidth="2">
         <motion.path
@@ -165,7 +214,7 @@ const HowItWorks = () => {
           </p>
         </motion.div>
 
-        <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+        <div className="grid md:grid-cols-4 gap-6 max-w-6xl mx-auto">
           {steps.map((step, index) => (
             <motion.div
               key={step.title}
