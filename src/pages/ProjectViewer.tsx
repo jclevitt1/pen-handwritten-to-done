@@ -1,5 +1,5 @@
 import { useAuth } from '@clerk/clerk-react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { ArrowLeft, Download, Loader2, ExternalLink } from 'lucide-react';
@@ -11,7 +11,9 @@ import { css } from '@codemirror/lang-css';
 import { json } from '@codemirror/lang-json';
 import { markdown } from '@codemirror/lang-markdown';
 import { Button } from '@/components/ui/button';
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
 import { FileTree } from '@/components/FileTree';
+import { ChatPanel } from '@/components/ChatPanel';
 import { api, Project, ProjectFile } from '@/lib/api';
 
 // Get language extension based on file extension
@@ -43,10 +45,12 @@ function getLanguageExtension(filename: string) {
 export default function ProjectViewer() {
   const { projectId } = useParams<{ projectId: string }>();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { isLoaded, isSignedIn, getToken } = useAuth();
   const [selectedFile, setSelectedFile] = useState<ProjectFile | null>(null);
   const [fileContent, setFileContent] = useState<string>('');
   const [loadingContent, setLoadingContent] = useState(false);
+  const [fileVersion, setFileVersion] = useState(0); // For forcing re-fetch after chat edits
 
   // Set up API token getter
   useEffect(() => {
@@ -76,7 +80,7 @@ export default function ProjectViewer() {
 
   const files = filesData?.files ?? [];
 
-  // Load file content when selected
+  // Load file content when selected (or when fileVersion changes from chat edits)
   useEffect(() => {
     if (!selectedFile || !projectId) return;
 
@@ -95,7 +99,15 @@ export default function ProjectViewer() {
     };
 
     loadContent();
-  }, [selectedFile, projectId]);
+  }, [selectedFile, projectId, fileVersion]);
+
+  // Callback when chat modifies files
+  const handleFileChanged = () => {
+    // Invalidate file list query to refresh
+    queryClient.invalidateQueries({ queryKey: ['projectFiles', projectId] });
+    // Bump version to re-fetch current file content
+    setFileVersion((v) => v + 1);
+  };
 
   // Auto-select first file
   useEffect(() => {
@@ -191,44 +203,60 @@ export default function ProjectViewer() {
           />
         </div>
 
-        {/* Editor pane */}
-        <div className="flex-1 flex flex-col overflow-hidden">
-          {selectedFile ? (
-            <>
-              {/* File tab */}
-              <div className="h-10 border-b border-border bg-muted/30 flex items-center px-4 shrink-0">
-                <span className="text-sm">{selectedFile.name}</span>
-                {selectedFile.size && (
-                  <span className="text-xs text-muted-foreground ml-2">
-                    ({(selectedFile.size / 1024).toFixed(1)} KB)
-                  </span>
-                )}
-              </div>
-
-              {/* Code editor */}
-              <div className="flex-1 overflow-hidden">
-                {loadingContent ? (
-                  <div className="h-full flex items-center justify-center">
-                    <Loader2 className="w-6 h-6 animate-spin text-primary" />
+        {/* Editor + Chat pane */}
+        <ResizablePanelGroup direction="vertical" className="flex-1">
+          {/* Editor panel */}
+          <ResizablePanel defaultSize={70} minSize={30}>
+            <div className="h-full flex flex-col overflow-hidden">
+              {selectedFile ? (
+                <>
+                  {/* File tab */}
+                  <div className="h-10 border-b border-border bg-muted/30 flex items-center px-4 shrink-0">
+                    <span className="text-sm">{selectedFile.name}</span>
+                    {selectedFile.size && (
+                      <span className="text-xs text-muted-foreground ml-2">
+                        ({(selectedFile.size / 1024).toFixed(1)} KB)
+                      </span>
+                    )}
                   </div>
-                ) : (
-                  <CodeMirror
-                    value={fileContent}
-                    height="100%"
-                    extensions={[getLanguageExtension(selectedFile.name)]}
-                    editable={false}
-                    theme="dark"
-                    className="h-full"
-                  />
-                )}
-              </div>
-            </>
-          ) : (
-            <div className="h-full flex items-center justify-center text-muted-foreground">
-              Select a file to view
+
+                  {/* Code editor */}
+                  <div className="flex-1 overflow-hidden">
+                    {loadingContent ? (
+                      <div className="h-full flex items-center justify-center">
+                        <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                      </div>
+                    ) : (
+                      <CodeMirror
+                        value={fileContent}
+                        height="100%"
+                        extensions={[getLanguageExtension(selectedFile.name)]}
+                        editable={false}
+                        theme="dark"
+                        className="h-full"
+                      />
+                    )}
+                  </div>
+                </>
+              ) : (
+                <div className="h-full flex items-center justify-center text-muted-foreground">
+                  Select a file to view
+                </div>
+              )}
             </div>
-          )}
-        </div>
+          </ResizablePanel>
+
+          <ResizableHandle withHandle />
+
+          {/* Chat panel */}
+          <ResizablePanel defaultSize={30} minSize={20}>
+            <ChatPanel
+              projectId={projectId!}
+              currentFile={selectedFile}
+              onFileChanged={handleFileChanged}
+            />
+          </ResizablePanel>
+        </ResizablePanelGroup>
       </div>
     </div>
   );

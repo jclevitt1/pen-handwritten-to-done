@@ -46,6 +46,26 @@ export interface Job {
   completed_at?: string;
 }
 
+// Chat types
+export interface ChatRequest {
+  message: string;
+  context_file?: string;
+  auto_apply?: boolean;
+}
+
+export interface ChatEdit {
+  file: string;
+  content: string;
+}
+
+export interface ChatResponse {
+  message: string;
+  edits: ChatEdit[];
+  applied: boolean;
+  parse_error?: string;
+  apply_error?: string;
+}
+
 class ApiClient {
   private getToken: (() => Promise<string | null>) | null = null;
 
@@ -164,6 +184,14 @@ class ApiClient {
         content_base64: contentBase64,
         mime_type: mimeType,
       }),
+    });
+  }
+
+  // Chat with project
+  async sendChatMessage(projectId: string, data: ChatRequest): Promise<ChatResponse> {
+    return this.request<ChatResponse>(`/projects/${projectId}/chat`, {
+      method: 'POST',
+      body: JSON.stringify(data),
     });
   }
 }
