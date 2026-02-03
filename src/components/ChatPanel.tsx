@@ -59,31 +59,76 @@ export function ChatPanel({ projectId, currentFile, onFileChanged }: ChatPanelPr
     setIsLoading(true);
 
     try {
-      const response = await api.sendChatMessage(projectId, {
+      const streamResult = await api.sendChatMessageAsync(projectId, {
         message: userMessage.content,
         context_file: currentFile?.name,
         auto_apply: autoApply,
       });
 
-      const assistantMessage: Message = {
-        id: crypto.randomUUID(),
-        role: 'assistant',
-        content: response.message,
-        edits: response.edits,
-        applied: response.applied,
-        timestamp: new Date(),
-      };
+      if (streamResult.type === 'immediate') {
+        // Immediate response (clarification or direct)
+        const assistantMessage: Message = {
+          id: crypto.randomUUID(),
+          role: 'assistant',
+          content: streamResult.response!.message,
+          edits: streamResult.response!.edits,
+          applied: streamResult.response!.applied,
+          timestamp: new Date(),
+        };
+        setMessages((prev) => [...prev, assistantMessage]);
 
-      setMessages((prev) => [...prev, assistantMessage]);
+        if (streamResult.response!.applied && streamResult.response!.edits.length > 0) {
+          onFileChanged?.();
+        }
+        if (!autoApply && streamResult.response!.edits.length > 0) {
+          setPendingEdits(streamResult.response!.edits);
+        }
+      } else {
+        // Async - show preliminary message then poll
+        const preliminaryId = crypto.randomUUID();
+        const preliminaryMessage: Message = {
+          id: preliminaryId,
+          role: 'assistant',
+          content: streamResult.preliminaryMessage || 'Working on that...',
+          timestamp: new Date(),
+        };
+        setMessages((prev) => [...prev, preliminaryMessage]);
 
-      // If edits were applied, notify parent to refresh
-      if (response.applied && response.edits.length > 0) {
-        onFileChanged?.();
-      }
+        // Poll for completion
+        const task = await api.pollForCompletion(streamResult.taskId!);
 
-      // If not auto-apply and there are edits, show pending
-      if (!autoApply && response.edits.length > 0) {
-        setPendingEdits(response.edits);
+        if (task.status === 'FAILED') {
+          // Update preliminary message with error
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === preliminaryId
+                ? { ...m, content: `Error: ${task.error || 'Task failed'}` }
+                : m
+            )
+          );
+        } else {
+          // Replace preliminary message with final response
+          const finalResponse = task.result || { message: 'Done!', edits: [], applied: false };
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === preliminaryId
+                ? {
+                    ...m,
+                    content: finalResponse.message,
+                    edits: finalResponse.edits,
+                    applied: finalResponse.applied,
+                  }
+                : m
+            )
+          );
+
+          if (finalResponse.applied && finalResponse.edits.length > 0) {
+            onFileChanged?.();
+          }
+          if (!autoApply && finalResponse.edits.length > 0) {
+            setPendingEdits(finalResponse.edits);
+          }
+        }
       }
     } catch (error) {
       const errorMessage: Message = {

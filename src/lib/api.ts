@@ -71,6 +71,7 @@ export interface ChatAsyncResponse {
   status: 'working' | 'clarification_needed';
   task_id?: string;
   message?: string;
+  preliminary_message?: string;
   message_id?: string;
   user_message_id?: string;
 }
@@ -83,6 +84,16 @@ export interface TaskResult {
   error?: string;
   created_at: string;
   completed_at?: string;
+}
+
+// Combined chat result for two-step flow
+export interface ChatStreamResult {
+  type: 'immediate' | 'async';
+  // For immediate responses (clarification or direct)
+  response?: ChatResponse;
+  // For async responses (working)
+  taskId?: string;
+  preliminaryMessage?: string;
 }
 
 class ApiClient {
@@ -211,8 +222,8 @@ class ApiClient {
     return this.request<TaskResult>(`/tasks/${taskId}`);
   }
 
-  // Poll for task completion
-  private async pollForCompletion(taskId: string, maxAttempts = 120, intervalMs = 2000): Promise<TaskResult> {
+  // Poll for task completion (public for ChatPanel to use)
+  async pollForCompletion(taskId: string, maxAttempts = 120, intervalMs = 2000): Promise<TaskResult> {
     for (let i = 0; i < maxAttempts; i++) {
       const task = await this.getTask(taskId);
       if (task.status === 'COMPLETED' || task.status === 'FAILED') {
@@ -223,8 +234,8 @@ class ApiClient {
     throw new Error('Task timed out');
   }
 
-  // Chat with project (handles async flow)
-  async sendChatMessage(projectId: string, data: ChatRequest): Promise<ChatResponse> {
+  // Chat with project - returns stream result for two-step flow
+  async sendChatMessageAsync(projectId: string, data: ChatRequest): Promise<ChatStreamResult> {
     const response = await this.request<ChatAsyncResponse | ChatResponse>(`/projects/${projectId}/chat`, {
       method: 'POST',
       body: JSON.stringify(data),
@@ -235,33 +246,52 @@ class ApiClient {
       const asyncResponse = response as ChatAsyncResponse;
 
       if (asyncResponse.status === 'clarification_needed') {
-        // Return clarification as a message with no edits
         return {
-          message: asyncResponse.message || 'Could you please clarify?',
-          edits: [],
-          applied: false,
+          type: 'immediate',
+          response: {
+            message: asyncResponse.message || 'Could you please clarify?',
+            edits: [],
+            applied: false,
+          },
         };
       }
 
       if (asyncResponse.status === 'working' && asyncResponse.task_id) {
-        // Poll for completion
-        const task = await this.pollForCompletion(asyncResponse.task_id);
-
-        if (task.status === 'FAILED') {
-          throw new Error(task.error || 'Task failed');
-        }
-
-        // Return the result from the completed task
-        return task.result || {
-          message: 'Task completed',
-          edits: [],
-          applied: false,
+        return {
+          type: 'async',
+          taskId: asyncResponse.task_id,
+          preliminaryMessage: asyncResponse.preliminary_message || 'Working on that...',
         };
       }
     }
 
     // Direct response (shouldn't happen with new backend, but handle it)
-    return response as ChatResponse;
+    return {
+      type: 'immediate',
+      response: response as ChatResponse,
+    };
+  }
+
+  // Chat with project - simple version that waits for completion (backwards compatible)
+  async sendChatMessage(projectId: string, data: ChatRequest): Promise<ChatResponse> {
+    const streamResult = await this.sendChatMessageAsync(projectId, data);
+
+    if (streamResult.type === 'immediate') {
+      return streamResult.response!;
+    }
+
+    // Async - poll for completion
+    const task = await this.pollForCompletion(streamResult.taskId!);
+
+    if (task.status === 'FAILED') {
+      throw new Error(task.error || 'Task failed');
+    }
+
+    return task.result || {
+      message: 'Task completed',
+      edits: [],
+      applied: false,
+    };
   }
 }
 
