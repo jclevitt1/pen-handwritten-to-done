@@ -66,6 +66,25 @@ export interface ChatResponse {
   apply_error?: string;
 }
 
+// New async chat response types
+export interface ChatAsyncResponse {
+  status: 'working' | 'clarification_needed';
+  task_id?: string;
+  message?: string;
+  message_id?: string;
+  user_message_id?: string;
+}
+
+export interface TaskResult {
+  task_id: string;
+  task_type: string;
+  status: 'NEW' | 'IN_PROGRESS' | 'COMPLETED' | 'FAILED' | 'YIELDED';
+  result?: ChatResponse;
+  error?: string;
+  created_at: string;
+  completed_at?: string;
+}
+
 class ApiClient {
   private getToken: (() => Promise<string | null>) | null = null;
 
@@ -187,12 +206,62 @@ class ApiClient {
     });
   }
 
-  // Chat with project
+  // Get task status (for polling)
+  async getTask(taskId: string) {
+    return this.request<TaskResult>(`/tasks/${taskId}`);
+  }
+
+  // Poll for task completion
+  private async pollForCompletion(taskId: string, maxAttempts = 120, intervalMs = 2000): Promise<TaskResult> {
+    for (let i = 0; i < maxAttempts; i++) {
+      const task = await this.getTask(taskId);
+      if (task.status === 'COMPLETED' || task.status === 'FAILED') {
+        return task;
+      }
+      await new Promise(resolve => setTimeout(resolve, intervalMs));
+    }
+    throw new Error('Task timed out');
+  }
+
+  // Chat with project (handles async flow)
   async sendChatMessage(projectId: string, data: ChatRequest): Promise<ChatResponse> {
-    return this.request<ChatResponse>(`/projects/${projectId}/chat`, {
+    const response = await this.request<ChatAsyncResponse | ChatResponse>(`/projects/${projectId}/chat`, {
       method: 'POST',
       body: JSON.stringify(data),
     });
+
+    // Check if this is an async response
+    if ('status' in response) {
+      const asyncResponse = response as ChatAsyncResponse;
+
+      if (asyncResponse.status === 'clarification_needed') {
+        // Return clarification as a message with no edits
+        return {
+          message: asyncResponse.message || 'Could you please clarify?',
+          edits: [],
+          applied: false,
+        };
+      }
+
+      if (asyncResponse.status === 'working' && asyncResponse.task_id) {
+        // Poll for completion
+        const task = await this.pollForCompletion(asyncResponse.task_id);
+
+        if (task.status === 'FAILED') {
+          throw new Error(task.error || 'Task failed');
+        }
+
+        // Return the result from the completed task
+        return task.result || {
+          message: 'Task completed',
+          edits: [],
+          applied: false,
+        };
+      }
+    }
+
+    // Direct response (shouldn't happen with new backend, but handle it)
+    return response as ChatResponse;
   }
 }
 
