@@ -28,6 +28,7 @@ export function ChatPanel({ projectId, currentFile, onFileChanged }: ChatPanelPr
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isWorking, setIsWorking] = useState(false); // True when async task is processing
   const [autoApply, setAutoApply] = useState(true);
   const [pendingEdits, setPendingEdits] = useState<ChatEdit[] | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -85,42 +86,40 @@ export function ChatPanel({ projectId, currentFile, onFileChanged }: ChatPanelPr
         }
       } else {
         // Async - show preliminary message then poll
-        const preliminaryId = crypto.randomUUID();
         const preliminaryMessage: Message = {
-          id: preliminaryId,
+          id: crypto.randomUUID(),
           role: 'assistant',
           content: streamResult.preliminaryMessage || 'Working on that...',
           timestamp: new Date(),
         };
         setMessages((prev) => [...prev, preliminaryMessage]);
+        setIsWorking(true);
 
         // Poll for completion
         const task = await api.pollForCompletion(streamResult.taskId!);
+        setIsWorking(false);
 
         if (task.status === 'FAILED') {
-          // Update preliminary message with error
-          setMessages((prev) =>
-            prev.map((m) =>
-              m.id === preliminaryId
-                ? { ...m, content: `Error: ${task.error || 'Task failed'}` }
-                : m
-            )
-          );
+          // Add error message as new message
+          const errorMessage: Message = {
+            id: crypto.randomUUID(),
+            role: 'assistant',
+            content: `Error: ${task.error || 'Task failed'}`,
+            timestamp: new Date(),
+          };
+          setMessages((prev) => [...prev, errorMessage]);
         } else {
-          // Replace preliminary message with final response
+          // Add final response as NEW message below preliminary
           const finalResponse = task.result || { message: 'Done!', edits: [], applied: false };
-          setMessages((prev) =>
-            prev.map((m) =>
-              m.id === preliminaryId
-                ? {
-                    ...m,
-                    content: finalResponse.message,
-                    edits: finalResponse.edits,
-                    applied: finalResponse.applied,
-                  }
-                : m
-            )
-          );
+          const finalMessage: Message = {
+            id: crypto.randomUUID(),
+            role: 'assistant',
+            content: finalResponse.message,
+            edits: finalResponse.edits,
+            applied: finalResponse.applied,
+            timestamp: new Date(),
+          };
+          setMessages((prev) => [...prev, finalMessage]);
 
           if (finalResponse.applied && finalResponse.edits.length > 0) {
             onFileChanged?.();
@@ -283,8 +282,11 @@ export function ChatPanel({ projectId, currentFile, onFileChanged }: ChatPanelPr
 
           {isLoading && (
             <div className="flex justify-start">
-              <div className="bg-muted rounded-lg px-3 py-2">
+              <div className="bg-muted rounded-lg px-3 py-2 flex items-center gap-2">
                 <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                {isWorking && (
+                  <span className="text-sm text-muted-foreground">Concocting...</span>
+                )}
               </div>
             </div>
           )}
