@@ -2,7 +2,7 @@ import { useAuth } from '@clerk/clerk-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useEffect, useState } from 'react';
-import { ArrowLeft, Download, Loader2, ExternalLink } from 'lucide-react';
+import { ArrowLeft, Download, Loader2, ExternalLink, Eye, Code } from 'lucide-react';
 import CodeMirror from '@uiw/react-codemirror';
 import { javascript } from '@codemirror/lang-javascript';
 import { python } from '@codemirror/lang-python';
@@ -10,11 +10,21 @@ import { html } from '@codemirror/lang-html';
 import { css } from '@codemirror/lang-css';
 import { json } from '@codemirror/lang-json';
 import { markdown } from '@codemirror/lang-markdown';
+import ReactMarkdown from 'react-markdown';
+import remarkMath from 'remark-math';
+import rehypeKatex from 'rehype-katex';
+import 'katex/dist/katex.min.css';
 import { Button } from '@/components/ui/button';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
 import { FileTree } from '@/components/FileTree';
 import { ChatPanel } from '@/components/ChatPanel';
 import { api, Project, ProjectFile } from '@/lib/api';
+
+// Check if file is markdown
+function isMarkdownFile(filename: string): boolean {
+  const ext = filename.split('.').pop()?.toLowerCase();
+  return ext === 'md' || ext === 'markdown';
+}
 
 // Get language extension based on file extension
 function getLanguageExtension(filename: string) {
@@ -51,6 +61,7 @@ export default function ProjectViewer() {
   const [fileContent, setFileContent] = useState<string>('');
   const [loadingContent, setLoadingContent] = useState(false);
   const [fileVersion, setFileVersion] = useState(0); // For forcing re-fetch after chat edits
+  const [showRendered, setShowRendered] = useState(true); // Toggle for markdown rendering
 
   // Set up API token getter
   useEffect(() => {
@@ -211,20 +222,51 @@ export default function ProjectViewer() {
               {selectedFile ? (
                 <>
                   {/* File tab */}
-                  <div className="h-10 border-b border-border bg-muted/30 flex items-center px-4 shrink-0">
-                    <span className="text-sm">{selectedFile.name}</span>
-                    {selectedFile.size && (
-                      <span className="text-xs text-muted-foreground ml-2">
-                        ({(selectedFile.size / 1024).toFixed(1)} KB)
-                      </span>
+                  <div className="h-10 border-b border-border bg-muted/30 flex items-center px-4 shrink-0 justify-between">
+                    <div className="flex items-center">
+                      <span className="text-sm">{selectedFile.name}</span>
+                      {selectedFile.size && (
+                        <span className="text-xs text-muted-foreground ml-2">
+                          ({(selectedFile.size / 1024).toFixed(1)} KB)
+                        </span>
+                      )}
+                    </div>
+                    {isMarkdownFile(selectedFile.name) && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setShowRendered(!showRendered)}
+                        className="h-7 px-2"
+                      >
+                        {showRendered ? (
+                          <>
+                            <Code className="w-4 h-4 mr-1" />
+                            Raw
+                          </>
+                        ) : (
+                          <>
+                            <Eye className="w-4 h-4 mr-1" />
+                            Preview
+                          </>
+                        )}
+                      </Button>
                     )}
                   </div>
 
-                  {/* Code editor */}
+                  {/* Code editor or Markdown renderer */}
                   <div className="flex-1 overflow-hidden">
                     {loadingContent ? (
                       <div className="h-full flex items-center justify-center">
                         <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                      </div>
+                    ) : isMarkdownFile(selectedFile.name) && showRendered ? (
+                      <div className="h-full overflow-auto p-6 prose prose-invert prose-sm max-w-none">
+                        <ReactMarkdown
+                          remarkPlugins={[remarkMath]}
+                          rehypePlugins={[rehypeKatex]}
+                        >
+                          {fileContent}
+                        </ReactMarkdown>
                       </div>
                     ) : (
                       <CodeMirror
