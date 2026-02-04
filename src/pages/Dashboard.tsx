@@ -1,18 +1,21 @@
 import { useAuth, useUser } from '@clerk/clerk-react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
-import { Folder, Plus, Search, LogOut, Loader2 } from 'lucide-react';
+import { Folder, Plus, Search, LogOut, Loader2, Pencil, Upload } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { api, Project } from '@/lib/api';
+import { api, Project, SourceType } from '@/lib/api';
+import { NewProjectModal } from '@/components/NewProjectModal';
 
 const Dashboard = () => {
   const { isLoaded, isSignedIn, signOut, getToken } = useAuth();
   const { user } = useUser();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
+  const [showNewProjectModal, setShowNewProjectModal] = useState(false);
 
   // Set up API token getter
   useEffect(() => {
@@ -39,6 +42,14 @@ const Dashboard = () => {
   // Handle project click - navigate to project viewer
   const handleProjectClick = (project: Project) => {
     navigate(`/project/${project.project_id}`);
+  };
+
+  // Handle new project creation
+  const handleProjectCreated = (projectId: string) => {
+    // Invalidate projects query to refresh the list
+    queryClient.invalidateQueries({ queryKey: ['projects'] });
+    // Navigate to the new project
+    navigate(`/project/${projectId}`);
   };
 
   if (!isLoaded) {
@@ -101,7 +112,10 @@ const Dashboard = () => {
           {/* Title and actions */}
           <div className="flex items-center justify-between mb-8">
             <h1 className="text-3xl font-bold">Your Projects</h1>
-            <Button className="bg-primary text-primary-foreground hover:bg-primary/90">
+            <Button
+              className="bg-primary text-primary-foreground hover:bg-primary/90"
+              onClick={() => setShowNewProjectModal(true)}
+            >
               <Plus className="w-4 h-4 mr-2" />
               New Project
             </Button>
@@ -145,7 +159,10 @@ const Dashboard = () => {
               <p className="text-muted-foreground mb-6">
                 Create your first project from the iOS app or upload notes here.
               </p>
-              <Button className="bg-primary text-primary-foreground hover:bg-primary/90">
+              <Button
+                className="bg-primary text-primary-foreground hover:bg-primary/90"
+                onClick={() => setShowNewProjectModal(true)}
+              >
                 <Plus className="w-4 h-4 mr-2" />
                 Create Project
               </Button>
@@ -162,6 +179,13 @@ const Dashboard = () => {
             </div>
           )}
         </motion.div>
+
+        {/* New Project Modal */}
+        <NewProjectModal
+          isOpen={showNewProjectModal}
+          onClose={() => setShowNewProjectModal(false)}
+          onProjectCreated={handleProjectCreated}
+        />
       </main>
     </div>
   );
@@ -176,6 +200,25 @@ const ProjectCard = ({ project, onClick }: { project: Project; onClick: () => vo
     javascript: 'bg-yellow-500',
   };
 
+  // Source type styling
+  const sourceType = project.source_type || 'written';
+  const sourceTypeConfig: Record<SourceType, { color: string; bgColor: string; label: string; Icon: typeof Pencil }> = {
+    written: {
+      color: 'text-purple-400',
+      bgColor: 'bg-purple-500/10',
+      label: 'From Notes',
+      Icon: Pencil,
+    },
+    uploaded: {
+      color: 'text-blue-400',
+      bgColor: 'bg-blue-500/10',
+      label: 'Uploaded',
+      Icon: Upload,
+    },
+  };
+
+  const { color, bgColor, label, Icon } = sourceTypeConfig[sourceType];
+
   return (
     <motion.div
       whileHover={{ scale: 1.02 }}
@@ -184,22 +227,35 @@ const ProjectCard = ({ project, onClick }: { project: Project; onClick: () => vo
     >
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+          <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center relative">
             <Folder className="w-5 h-5 text-primary" />
+            {/* Source type indicator dot */}
+            <span
+              className={`absolute -top-1 -right-1 w-3 h-3 rounded-full ${sourceType === 'written' ? 'bg-purple-500' : 'bg-blue-500'}`}
+              title={label}
+            />
           </div>
           <div>
             <h3 className="font-semibold">{project.name}</h3>
-            {project.language && (
-              <div className="flex items-center gap-2 mt-1">
-                <span
-                  className={`w-2 h-2 rounded-full ${languageColors[project.language] || 'bg-gray-500'}`}
-                />
-                <span className="text-xs text-muted-foreground capitalize">
-                  {project.language}
-                  {project.framework && ` / ${project.framework}`}
+            <div className="flex items-center gap-2 mt-1 flex-wrap">
+              {/* Source type badge */}
+              <span className={`text-xs px-1.5 py-0.5 rounded flex items-center gap-1 ${bgColor} ${color}`}>
+                <Icon className="w-3 h-3" />
+                {label}
+              </span>
+              {/* Language badge */}
+              {project.language && (
+                <span className="flex items-center gap-1">
+                  <span
+                    className={`w-2 h-2 rounded-full ${languageColors[project.language] || 'bg-gray-500'}`}
+                  />
+                  <span className="text-xs text-muted-foreground capitalize">
+                    {project.language}
+                    {project.framework && ` / ${project.framework}`}
+                  </span>
                 </span>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         </div>
       </div>

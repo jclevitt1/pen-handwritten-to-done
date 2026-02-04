@@ -6,10 +6,13 @@ import { config } from './config';
 const BASE_URL = config.api.baseUrl;
 
 // Types matching DynamoDB schema
+export type SourceType = 'written' | 'uploaded';
+
 export interface Project {
   user_id: string;
   project_id: string;
   name: string;
+  source_type: SourceType;
   description?: string;
   s3_uri?: string;
   s3_prefix?: string;
@@ -151,10 +154,19 @@ class ApiClient {
     return this.request<Project>(`/projects/${projectId}`);
   }
 
-  async createProject(data: { name: string; description?: string; language?: string; framework?: string }) {
+  async createProject(data: {
+    name: string;
+    source_type?: SourceType;
+    description?: string;
+    language?: string;
+    framework?: string;
+  }) {
     return this.request<Project>('/projects', {
       method: 'POST',
-      body: JSON.stringify(data),
+      body: JSON.stringify({
+        ...data,
+        source_type: data.source_type || 'written',
+      }),
     });
   }
 
@@ -205,7 +217,7 @@ class ApiClient {
     });
   }
 
-  // Upload
+  // Upload PDF for processing
   async upload(path: string, contentBase64: string, mimeType = 'application/pdf') {
     return this.request<{ success: boolean; file_id: string; path: string; size: number }>('/upload', {
       method: 'POST',
@@ -214,6 +226,45 @@ class ApiClient {
         content_base64: contentBase64,
         mime_type: mimeType,
       }),
+    });
+  }
+
+  // Upload files directly to a project (for 'uploaded' source_type)
+  async uploadProjectFiles(
+    projectId: string,
+    files: Array<{ path: string; content: string; mimeType?: string }>
+  ) {
+    const filesData = files.map((f) => ({
+      path: f.path,
+      content_base64: btoa(f.content),
+      mime_type: f.mimeType || 'text/plain',
+    }));
+
+    return this.request<{ uploaded: Array<{ path: string; size: number }>; count: number; total_size: number }>(
+      `/projects/${projectId}/upload-files`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ files: filesData }),
+      }
+    );
+  }
+
+  // Execute notes processing (creates project from handwritten notes)
+  async executeNotes(data: {
+    file_path: string;
+    project_name: string;
+    project_type?: string;
+    project_id?: string;
+  }) {
+    return this.request<{
+      task_id: string;
+      job_id: string;
+      status: string;
+      project_name: string;
+      message: string;
+    }>('/execute', {
+      method: 'POST',
+      body: JSON.stringify(data),
     });
   }
 
