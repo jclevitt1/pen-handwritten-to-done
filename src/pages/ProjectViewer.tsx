@@ -222,35 +222,35 @@ export default function ProjectViewer() {
               {selectedFile ? (
                 <>
                   {/* File tab */}
-                  <div className="h-10 border-b border-border bg-muted/30 flex items-center px-4 shrink-0 justify-between">
-                    <div className="flex items-center">
-                      <span className="text-sm">{selectedFile.name}</span>
+                  <div className="h-10 border-b border-border bg-muted/30 flex items-center px-4 shrink-0">
+                    <div className="flex items-center gap-3">
+                      <span className="text-sm font-medium">{selectedFile.name}</span>
+                      {isMarkdownFile(selectedFile.name) && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setShowRendered(!showRendered)}
+                          className="h-6 px-2 text-xs"
+                        >
+                          {showRendered ? (
+                            <>
+                              <Code className="w-3 h-3 mr-1" />
+                              Raw
+                            </>
+                          ) : (
+                            <>
+                              <Eye className="w-3 h-3 mr-1" />
+                              Preview
+                            </>
+                          )}
+                        </Button>
+                      )}
                       {selectedFile.size && (
-                        <span className="text-xs text-muted-foreground ml-2">
+                        <span className="text-xs text-muted-foreground">
                           ({(selectedFile.size / 1024).toFixed(1)} KB)
                         </span>
                       )}
                     </div>
-                    {isMarkdownFile(selectedFile.name) && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setShowRendered(!showRendered)}
-                        className="h-7 px-2"
-                      >
-                        {showRendered ? (
-                          <>
-                            <Code className="w-4 h-4 mr-1" />
-                            Raw
-                          </>
-                        ) : (
-                          <>
-                            <Eye className="w-4 h-4 mr-1" />
-                            Preview
-                          </>
-                        )}
-                      </Button>
-                    )}
                   </div>
 
                   {/* Code editor or Markdown renderer */}
@@ -260,13 +260,15 @@ export default function ProjectViewer() {
                         <Loader2 className="w-6 h-6 animate-spin text-primary" />
                       </div>
                     ) : isMarkdownFile(selectedFile.name) && showRendered ? (
-                      <div className="h-full overflow-auto p-6 prose prose-invert prose-sm max-w-none">
-                        <ReactMarkdown
-                          remarkPlugins={[remarkMath]}
-                          rehypePlugins={[rehypeKatex]}
-                        >
-                          {fileContent}
-                        </ReactMarkdown>
+                      <div className="h-full overflow-auto p-8 bg-background">
+                        <article className="prose prose-invert prose-headings:font-semibold prose-headings:text-foreground prose-h1:text-3xl prose-h1:mb-6 prose-h1:mt-8 prose-h2:text-2xl prose-h2:mb-4 prose-h2:mt-6 prose-h3:text-xl prose-h3:mb-3 prose-h3:mt-4 prose-p:text-muted-foreground prose-p:leading-7 prose-p:mb-4 prose-li:text-muted-foreground prose-strong:text-foreground prose-code:text-primary prose-code:bg-muted prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-pre:bg-muted prose-pre:border prose-pre:border-border max-w-none">
+                          <ReactMarkdown
+                            remarkPlugins={[remarkMath]}
+                            rehypePlugins={[rehypeKatex]}
+                          >
+                            {fileContent}
+                          </ReactMarkdown>
+                        </article>
                       </div>
                     ) : (
                       <CodeMirror
