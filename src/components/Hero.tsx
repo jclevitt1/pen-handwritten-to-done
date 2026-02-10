@@ -9,17 +9,30 @@ const Hero = () => {
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email) return;
-    
+
     setIsLoading(true);
-    // Simulate API call
-    setTimeout(() => {
-      toast.success("You're on the list! We'll be in touch soon.");
-      setEmail("");
+    try {
+      const response = await fetch('/api/waitlist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+      const data = await response.json();
+
+      if (data.success) {
+        toast.success("You're on the list! We'll be in touch soon.");
+        setEmail("");
+      } else {
+        toast.error(data.error || "Something went wrong. Please try again.");
+      }
+    } catch {
+      toast.error("Something went wrong. Please try again.");
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   };
 
   return (
