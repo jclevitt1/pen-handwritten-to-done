@@ -13,6 +13,14 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   };
 
   try {
+    // Check if KV binding exists
+    if (!context.env.WAITLIST) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'KV binding not configured' }),
+        { status: 500, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
+      );
+    }
+
     const body = await context.request.json() as { email?: string };
     const email = body.email?.trim().toLowerCase();
 
@@ -41,8 +49,9 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     );
   } catch (error) {
     console.error('Waitlist error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Server error';
     return new Response(
-      JSON.stringify({ success: false, error: 'Server error' }),
+      JSON.stringify({ success: false, error: errorMessage }),
       { status: 500, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
     );
   }
