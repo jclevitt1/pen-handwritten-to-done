@@ -1,4 +1,4 @@
-name = "pen-handwritten-to-done"
+name = "usepen-website"
 pages_build_output_dir = "dist"
 
 [[kv_namespaces]]
