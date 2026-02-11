@@ -3,4 +3,4 @@ pages_build_output_dir = "dist"
 
 [[kv_namespaces]]
 binding = "WAITLIST"
-id = "aca830b55e2944f385252e47f6f64464"
+id = "d52dafda19d94fb6b454f31177dcd883"
