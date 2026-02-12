@@ -7,9 +7,11 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Upload, FileText, Loader2, Pencil, FolderUp } from 'lucide-react';
-import { api } from '@/lib/api';
+import { Upload, FileText, Loader2, Pencil, FolderUp, GraduationCap, Code, Briefcase } from 'lucide-react';
+import { api, ProjectType } from '@/lib/api';
 
 interface NewProjectModalProps {
   isOpen: boolean;
@@ -32,13 +34,36 @@ async function fileToBase64(file: File): Promise<string> {
   });
 }
 
+const PROJECT_TYPES: { value: ProjectType; label: string; description: string; icon: React.ReactNode }[] = [
+  {
+    value: 'academic_coursework',
+    label: 'Academic Coursework',
+    description: 'Summaries, solutions, and explanations',
+    icon: <GraduationCap className="w-5 h-5" />,
+  },
+  {
+    value: 'development',
+    label: 'Development',
+    description: 'Code projects and software',
+    icon: <Code className="w-5 h-5" />,
+  },
+  {
+    value: 'general_professional',
+    label: 'General Professional',
+    description: 'Documents, plans, and action items',
+    icon: <Briefcase className="w-5 h-5" />,
+  },
+];
+
 export function NewProjectModal({
   isOpen,
   onClose,
   onProjectCreated,
 }: NewProjectModalProps) {
-  const [activeTab, setActiveTab] = useState<'notes' | 'upload'>('notes');
+  // Default to 'upload' tab
+  const [activeTab, setActiveTab] = useState<'notes' | 'upload'>('upload');
   const [projectName, setProjectName] = useState('');
+  const [projectType, setProjectType] = useState<ProjectType>('development');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
@@ -51,6 +76,7 @@ export function NewProjectModal({
 
   const resetState = () => {
     setProjectName('');
+    setProjectType('development');
     setPdfFile(null);
     setUploadFiles([]);
     setError(null);
@@ -80,11 +106,11 @@ export function NewProjectModal({
 
       setStatusMessage('Processing notes with Claude...');
 
-      // 2. Execute processing
+      // 2. Execute processing with selected project type
       const executeResult = await api.executeNotes({
         file_path: uploadResult.path,
         project_name: projectName,
-        project_type: 'development',
+        project_type: projectType,
       });
 
       setStatusMessage('Waiting for project generation...');
@@ -122,10 +148,11 @@ export function NewProjectModal({
     setStatusMessage('Creating project...');
 
     try {
-      // 1. Create project with source_type: 'uploaded'
+      // 1. Create project with source_type: 'uploaded' and selected project_type
       const project = await api.createProject({
         name: projectName,
         source_type: 'uploaded',
+        project_type: projectType,
       });
 
       setStatusMessage(`Uploading ${uploadFiles.length} files...`);
@@ -171,7 +198,7 @@ export function NewProjectModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[550px]">
         <DialogHeader>
           <DialogTitle>New Project</DialogTitle>
         </DialogHeader>
@@ -181,65 +208,52 @@ export function NewProjectModal({
           onValueChange={(v) => setActiveTab(v as 'notes' | 'upload')}
         >
           <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="notes" className="flex items-center gap-2">
-              <Pencil className="w-4 h-4" />
-              New from Notes
-            </TabsTrigger>
             <TabsTrigger value="upload" className="flex items-center gap-2">
               <FolderUp className="w-4 h-4" />
               Upload Project
             </TabsTrigger>
+            <TabsTrigger value="notes" className="flex items-center gap-2">
+              <Pencil className="w-4 h-4" />
+              From Notes
+            </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="notes" className="space-y-4 mt-4">
-            <p className="text-sm text-muted-foreground">
-              Upload a PDF of your handwritten notes and Claude will create a
-              project from them.
-            </p>
-
-            <Input
-              placeholder="Project name"
-              value={projectName}
-              onChange={(e) => setProjectName(e.target.value)}
-              disabled={isLoading}
-            />
-
-            <div className="border-2 border-dashed border-border rounded-lg p-8 text-center hover:border-primary/50 transition-colors">
-              <input
-                type="file"
-                accept=".pdf"
-                onChange={(e) => setPdfFile(e.target.files?.[0] || null)}
-                className="hidden"
-                id="pdf-upload"
-                disabled={isLoading}
-              />
-              <label htmlFor="pdf-upload" className="cursor-pointer">
-                <FileText className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-                <p className="text-sm text-muted-foreground">
-                  {pdfFile ? pdfFile.name : 'Click to upload PDF'}
-                </p>
-              </label>
-            </div>
-
-            <Button
-              className="w-full"
-              onClick={handleNotesSubmit}
-              disabled={!pdfFile || !projectName.trim() || isLoading}
+          {/* Shared Project Type Selector */}
+          <div className="mt-4 space-y-3">
+            <Label className="text-sm font-medium">Project Type</Label>
+            <RadioGroup
+              value={projectType}
+              onValueChange={(v) => setProjectType(v as ProjectType)}
+              className="grid grid-cols-1 gap-2"
             >
-              {isLoading ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  {statusMessage || 'Processing...'}
-                </>
-              ) : (
-                'Create from Notes'
-              )}
-            </Button>
-          </TabsContent>
+              {PROJECT_TYPES.map((type) => (
+                <Label
+                  key={type.value}
+                  htmlFor={type.value}
+                  className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+                    projectType === type.value
+                      ? 'border-primary bg-primary/5'
+                      : 'border-border hover:border-primary/50'
+                  }`}
+                >
+                  <RadioGroupItem value={type.value} id={type.value} />
+                  <div className="flex items-center gap-2 flex-1">
+                    <span className={projectType === type.value ? 'text-primary' : 'text-muted-foreground'}>
+                      {type.icon}
+                    </span>
+                    <div>
+                      <p className="text-sm font-medium">{type.label}</p>
+                      <p className="text-xs text-muted-foreground">{type.description}</p>
+                    </div>
+                  </div>
+                </Label>
+              ))}
+            </RadioGroup>
+          </div>
 
           <TabsContent value="upload" className="space-y-4 mt-4">
             <p className="text-sm text-muted-foreground">
-              Upload an existing code project to view and chat about it.
+              Upload an existing code project to view, chat about, and sync to your iPad.
             </p>
 
             <Input
@@ -284,6 +298,52 @@ export function NewProjectModal({
                 </>
               ) : (
                 'Upload Project'
+              )}
+            </Button>
+          </TabsContent>
+
+          <TabsContent value="notes" className="space-y-4 mt-4">
+            <p className="text-sm text-muted-foreground">
+              Upload a PDF of your handwritten notes and Claude will create a
+              project from them.
+            </p>
+
+            <Input
+              placeholder="Project name"
+              value={projectName}
+              onChange={(e) => setProjectName(e.target.value)}
+              disabled={isLoading}
+            />
+
+            <div className="border-2 border-dashed border-border rounded-lg p-8 text-center hover:border-primary/50 transition-colors">
+              <input
+                type="file"
+                accept=".pdf"
+                onChange={(e) => setPdfFile(e.target.files?.[0] || null)}
+                className="hidden"
+                id="pdf-upload"
+                disabled={isLoading}
+              />
+              <label htmlFor="pdf-upload" className="cursor-pointer">
+                <FileText className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+                <p className="text-sm text-muted-foreground">
+                  {pdfFile ? pdfFile.name : 'Click to upload PDF'}
+                </p>
+              </label>
+            </div>
+
+            <Button
+              className="w-full"
+              onClick={handleNotesSubmit}
+              disabled={!pdfFile || !projectName.trim() || isLoading}
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  {statusMessage || 'Processing...'}
+                </>
+              ) : (
+                'Create from Notes'
               )}
             </Button>
           </TabsContent>

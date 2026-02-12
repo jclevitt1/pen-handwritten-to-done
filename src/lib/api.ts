@@ -7,12 +7,14 @@ const BASE_URL = config.api.baseUrl;
 
 // Types matching DynamoDB schema
 export type SourceType = 'written' | 'uploaded';
+export type ProjectType = 'academic_coursework' | 'development' | 'general_professional';
 
 export interface Project {
   user_id: string;
   project_id: string;
   name: string;
   source_type: SourceType;
+  project_type?: ProjectType;
   description?: string;
   s3_uri?: string;
   s3_prefix?: string;
@@ -157,6 +159,7 @@ class ApiClient {
   async createProject(data: {
     name: string;
     source_type?: SourceType;
+    project_type?: ProjectType;
     description?: string;
     language?: string;
     framework?: string;
@@ -166,6 +169,7 @@ class ApiClient {
       body: JSON.stringify({
         ...data,
         source_type: data.source_type || 'written',
+        project_type: data.project_type || 'development',
       }),
     });
   }
