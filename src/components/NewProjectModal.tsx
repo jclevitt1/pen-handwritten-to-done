@@ -163,12 +163,10 @@ export function NewProjectModal({
         // Put files in project_files/{project_id}/{path}
         const destinationPath = `project_files/${project.project_id}/${relativePath}`;
 
-        setStatusMessage(`Uploading ${uploadedCount + 1}/${uploadFiles.length}: ${file.name}`);
+        setStatusMessage(`Uploading ${uploadedCount + 1}/${uploadFiles.length}...`);
 
         await api.uploadFileDirect(file, destinationPath, (percent) => {
-          setStatusMessage(
-            `Uploading ${uploadedCount + 1}/${uploadFiles.length}: ${file.name} (${percent}%)`
-          );
+          setStatusMessage(`${uploadedCount + 1}/${uploadFiles.length} (${percent}%)`);
         });
 
         uploadedCount++;
