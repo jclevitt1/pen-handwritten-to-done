@@ -14,6 +14,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import 'katex/dist/katex.min.css';
+import mammoth from 'mammoth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
@@ -51,6 +52,18 @@ function isPdfFile(filename: string): boolean {
   return ext === 'pdf';
 }
 
+// Check if file is a Word document
+function isDocxFile(filename: string): boolean {
+  const ext = filename.split('.').pop()?.toLowerCase();
+  return ext === 'docx';
+}
+
+// Check if file is an old .doc format (not supported for preview)
+function isDocFile(filename: string): boolean {
+  const ext = filename.split('.').pop()?.toLowerCase();
+  return ext === 'doc';
+}
+
 // Get language extension based on file extension
 function getLanguageExtension(filename: string) {
   const ext = filename.split('.').pop()?.toLowerCase();
@@ -85,6 +98,7 @@ export default function ProjectViewer() {
   const [selectedFile, setSelectedFile] = useState<ProjectFile | null>(null);
   const [fileContent, setFileContent] = useState<string>('');
   const [pdfUrl, setPdfUrl] = useState<string | null>(null); // For PDF viewing
+  const [docxHtml, setDocxHtml] = useState<string | null>(null); // For DOCX viewing
   const [loadingContent, setLoadingContent] = useState(false);
   const [fileVersion, setFileVersion] = useState(0); // For forcing re-fetch after chat edits
   const [showRendered, setShowRendered] = useState(true); // Toggle for markdown rendering
@@ -131,6 +145,7 @@ export default function ProjectViewer() {
     const loadContent = async () => {
       setLoadingContent(true);
       setPdfUrl(null);
+      setDocxHtml(null);
       setFileContent('');
 
       try {
@@ -142,6 +157,15 @@ export default function ProjectViewer() {
         // For PDFs, just use the URL directly in an iframe
         if (isPdfFile(selectedFile.name)) {
           setPdfUrl(result.download_url);
+        } else if (isDocxFile(selectedFile.name)) {
+          // For DOCX files, fetch as arraybuffer and convert with mammoth
+          const response = await fetch(result.download_url);
+          const arrayBuffer = await response.arrayBuffer();
+          const mammothResult = await mammoth.convertToHtml({ arrayBuffer });
+          setDocxHtml(mammothResult.value);
+        } else if (isDocFile(selectedFile.name)) {
+          // Old .doc format not supported - show message
+          setFileContent('// .doc files cannot be previewed. Please download to view.');
         } else {
           // For text files, fetch the content
           const response = await fetch(result.download_url);
@@ -418,6 +442,20 @@ export default function ProjectViewer() {
                           Open in new tab
                         </Button>
                       )}
+                      {isDocFile(selectedFile.name) && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={async () => {
+                            const result = await api.getDownloadUrl(projectId!, selectedFile.path, 'download');
+                            window.open(result.download_url, '_blank');
+                          }}
+                          className="h-6 px-2 text-xs"
+                        >
+                          <Download className="w-3 h-3 mr-1" />
+                          Download .doc
+                        </Button>
+                      )}
                       {selectedFile.size && (
                         <span className="text-xs text-muted-foreground">
                           ({(selectedFile.size / 1024).toFixed(1)} KB)
@@ -426,7 +464,7 @@ export default function ProjectViewer() {
                     </div>
                   </div>
 
-                  {/* Code editor, Markdown renderer, or PDF viewer */}
+                  {/* Code editor, Markdown renderer, PDF viewer, or DOCX viewer */}
                   <div className="flex-1 overflow-hidden">
                     {loadingContent ? (
                       <div className="h-full flex items-center justify-center">
@@ -438,6 +476,13 @@ export default function ProjectViewer() {
                         className="w-full h-full border-0"
                         title={selectedFile.name}
                       />
+                    ) : isDocxFile(selectedFile.name) && docxHtml ? (
+                      <div className="h-full overflow-auto p-8 bg-background">
+                        <article
+                          className="prose prose-invert prose-headings:font-semibold prose-headings:text-foreground prose-h1:text-3xl prose-h1:mb-6 prose-h1:mt-8 prose-h2:text-2xl prose-h2:mb-4 prose-h2:mt-6 prose-h3:text-xl prose-h3:mb-3 prose-h3:mt-4 prose-p:text-muted-foreground prose-p:leading-7 prose-p:mb-4 prose-li:text-muted-foreground prose-strong:text-foreground prose-code:text-primary prose-code:bg-muted prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-pre:bg-muted prose-pre:border prose-pre:border-border max-w-none"
+                          dangerouslySetInnerHTML={{ __html: docxHtml }}
+                        />
+                      </div>
                     ) : isMarkdownFile(selectedFile.name) && showRendered ? (
                       <div className="h-full overflow-auto p-8 bg-background">
                         <article className="prose prose-invert prose-headings:font-semibold prose-headings:text-foreground prose-h1:text-3xl prose-h1:mb-6 prose-h1:mt-8 prose-h2:text-2xl prose-h2:mb-4 prose-h2:mt-6 prose-h3:text-xl prose-h3:mb-3 prose-h3:mt-4 prose-p:text-muted-foreground prose-p:leading-7 prose-p:mb-4 prose-li:text-muted-foreground prose-strong:text-foreground prose-code:text-primary prose-code:bg-muted prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-pre:bg-muted prose-pre:border prose-pre:border-border max-w-none">
