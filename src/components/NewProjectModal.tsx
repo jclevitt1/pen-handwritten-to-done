@@ -63,7 +63,7 @@ export function NewProjectModal({
   // Default to 'upload' tab
   const [activeTab, setActiveTab] = useState<'notes' | 'upload'>('upload');
   const [projectName, setProjectName] = useState('');
-  const [projectType, setProjectType] = useState<ProjectType>('development');
+  const [projectType, setProjectType] = useState<ProjectType>('academic_coursework');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
@@ -76,7 +76,7 @@ export function NewProjectModal({
 
   const resetState = () => {
     setProjectName('');
-    setProjectType('development');
+    setProjectType('academic_coursework');
     setPdfFile(null);
     setUploadFiles([]);
     setError(null);
