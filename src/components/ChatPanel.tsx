@@ -62,7 +62,7 @@ export function ChatPanel({ projectId, currentFile, onFileChanged }: ChatPanelPr
     try {
       const streamResult = await api.sendChatMessageAsync(projectId, {
         message: userMessage.content,
-        context_file: currentFile?.name,
+        context_file: currentFile?.path || currentFile?.name,
         auto_apply: autoApply,
       });
 
@@ -111,10 +111,20 @@ export function ChatPanel({ projectId, currentFile, onFileChanged }: ChatPanelPr
         } else {
           // Add final response as NEW message below preliminary
           const finalResponse = task.result || { message: 'Done!', edits: [], applied: false };
+
+          // Safeguard: extract message properly, handling potential nested structures
+          let messageContent = finalResponse.message;
+          if (typeof messageContent === 'object' && messageContent !== null) {
+            // If message is an object, try to extract inner message or stringify
+            messageContent = (messageContent as {message?: string}).message || JSON.stringify(messageContent);
+          } else if (typeof messageContent !== 'string') {
+            messageContent = String(messageContent || 'Done!');
+          }
+
           const finalMessage: Message = {
             id: crypto.randomUUID(),
             role: 'assistant',
-            content: finalResponse.message,
+            content: messageContent,
             edits: finalResponse.edits,
             applied: finalResponse.applied,
             timestamp: new Date(),
@@ -152,7 +162,7 @@ export function ChatPanel({ projectId, currentFile, onFileChanged }: ChatPanelPr
       if (lastUserMessage) {
         await api.sendChatMessage(projectId, {
           message: lastUserMessage.content,
-          context_file: currentFile?.name,
+          context_file: currentFile?.path || currentFile?.name,
           auto_apply: true,
         });
       }
