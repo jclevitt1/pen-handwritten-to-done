@@ -236,11 +236,11 @@ class ApiClient {
   // Upload files directly to a project (for 'uploaded' source_type)
   async uploadProjectFiles(
     projectId: string,
-    files: Array<{ path: string; content: string; mimeType?: string }>
+    files: Array<{ path: string; content_base64: string; mimeType?: string }>
   ) {
     const filesData = files.map((f) => ({
       path: f.path,
-      content_base64: btoa(f.content),
+      content_base64: f.content_base64,
       mime_type: f.mimeType || 'text/plain',
     }));
 
