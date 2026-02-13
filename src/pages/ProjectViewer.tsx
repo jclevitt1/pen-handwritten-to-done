@@ -1,8 +1,8 @@
 import { useAuth } from '@clerk/clerk-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { useEffect, useState } from 'react';
-import { ArrowLeft, Download, Loader2, ExternalLink, Eye, Code, FolderPlus } from 'lucide-react';
+import { useEffect, useState, useCallback } from 'react';
+import { ArrowLeft, Download, Loader2, ExternalLink, Eye, Code, FolderPlus, Save } from 'lucide-react';
 import CodeMirror from '@uiw/react-codemirror';
 import { javascript } from '@codemirror/lang-javascript';
 import { python } from '@codemirror/lang-python';
@@ -64,6 +64,22 @@ function isDocFile(filename: string): boolean {
   return ext === 'doc';
 }
 
+// Check if file is editable (text-based)
+function isEditableFile(filename: string): boolean {
+  // Non-editable formats
+  if (isPdfFile(filename) || isDocxFile(filename) || isDocFile(filename)) {
+    return false;
+  }
+  // Check for known binary extensions
+  const ext = filename.split('.').pop()?.toLowerCase();
+  const binaryExtensions = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'ico', 'bmp',
+                            'mp3', 'mp4', 'wav', 'avi', 'mov', 'webm',
+                            'zip', 'tar', 'gz', 'rar', '7z',
+                            'exe', 'dll', 'so', 'dylib',
+                            'woff', 'woff2', 'ttf', 'otf', 'eot'];
+  return !binaryExtensions.includes(ext || '');
+}
+
 // Get language extension based on file extension
 function getLanguageExtension(filename: string) {
   const ext = filename.split('.').pop()?.toLowerCase();
@@ -102,6 +118,12 @@ export default function ProjectViewer() {
   const [loadingContent, setLoadingContent] = useState(false);
   const [fileVersion, setFileVersion] = useState(0); // For forcing re-fetch after chat edits
   const [showRendered, setShowRendered] = useState(true); // Toggle for markdown rendering
+
+  // Editor state
+  const [editedContent, setEditedContent] = useState<string>('');
+  const [isDirty, setIsDirty] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [pendingFileSwitch, setPendingFileSwitch] = useState<ProjectFile | null>(null);
 
   // Dialog state
   const [renameDialog, setRenameDialog] = useState<{ file: ProjectFile; newName: string } | null>(null);
@@ -147,6 +169,8 @@ export default function ProjectViewer() {
       setPdfUrl(null);
       setDocxHtml(null);
       setFileContent('');
+      setEditedContent('');
+      setIsDirty(false);
 
       try {
         // Use path (full S3 key) for download, not just name
@@ -171,6 +195,7 @@ export default function ProjectViewer() {
           const response = await fetch(result.download_url);
           const text = await response.text();
           setFileContent(text);
+          setEditedContent(text);
         }
       } catch (e) {
         console.error('Failed to load file content:', e);
@@ -189,6 +214,70 @@ export default function ProjectViewer() {
     // Bump version to re-fetch current file content
     setFileVersion((v) => v + 1);
   };
+
+  // Save file content
+  const handleSaveFile = useCallback(async () => {
+    if (!selectedFile || !projectId || !isDirty || isSaving) return;
+
+    setIsSaving(true);
+    try {
+      await api.updateFile(projectId, selectedFile.name, editedContent);
+      setFileContent(editedContent);
+      setIsDirty(false);
+      // Refresh file list to update sizes
+      queryClient.invalidateQueries({ queryKey: ['projectFiles', projectId] });
+    } catch (e) {
+      console.error('Failed to save file:', e);
+    }
+    setIsSaving(false);
+  }, [selectedFile, projectId, isDirty, isSaving, editedContent, queryClient]);
+
+  // Handle file selection with unsaved changes check
+  const handleSelectFile = useCallback((file: ProjectFile) => {
+    if (isDirty) {
+      // Store pending file and show confirmation
+      setPendingFileSwitch(file);
+    } else {
+      setSelectedFile(file);
+    }
+  }, [isDirty]);
+
+  // Handle discarding changes and switching
+  const handleDiscardAndSwitch = useCallback(() => {
+    if (pendingFileSwitch) {
+      setIsDirty(false);
+      setSelectedFile(pendingFileSwitch);
+      setPendingFileSwitch(null);
+    }
+  }, [pendingFileSwitch]);
+
+  // Handle saving and switching
+  const handleSaveAndSwitch = useCallback(async () => {
+    await handleSaveFile();
+    if (pendingFileSwitch) {
+      setSelectedFile(pendingFileSwitch);
+      setPendingFileSwitch(null);
+    }
+  }, [handleSaveFile, pendingFileSwitch]);
+
+  // Keyboard shortcut for save (Cmd/Ctrl + S)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 's') {
+        e.preventDefault();
+        handleSaveFile();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleSaveFile]);
+
+  // Handle editor content changes
+  const handleEditorChange = useCallback((value: string) => {
+    setEditedContent(value);
+    setIsDirty(value !== fileContent);
+  }, [fileContent]);
 
   // File/folder operation handlers
   const handleDeleteFile = async () => {
@@ -386,7 +475,7 @@ export default function ProjectViewer() {
             <FileTree
               files={files}
               selectedFile={selectedFile}
-              onSelectFile={setSelectedFile}
+              onSelectFile={handleSelectFile}
               onDeleteFile={(file) => setDeleteFileConfirm(file)}
               onRenameFile={(file) => setRenameDialog({ file, newName: file.name.split('/').pop() || file.name })}
               onMoveFile={handleMoveFileToFolder}
@@ -410,7 +499,26 @@ export default function ProjectViewer() {
                   {/* File tab */}
                   <div className="h-10 border-b border-border bg-muted/30 flex items-center px-4 shrink-0">
                     <div className="flex items-center gap-3">
-                      <span className="text-sm font-medium">{selectedFile.name}</span>
+                      <span className="text-sm font-medium">
+                        {isDirty && <span className="text-primary mr-1">●</span>}
+                        {selectedFile.name}
+                      </span>
+                      {isDirty && isEditableFile(selectedFile.name) && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={handleSaveFile}
+                          disabled={isSaving}
+                          className="h-6 px-2 text-xs"
+                        >
+                          {isSaving ? (
+                            <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                          ) : (
+                            <Save className="w-3 h-3 mr-1" />
+                          )}
+                          {isSaving ? 'Saving...' : 'Save'}
+                        </Button>
+                      )}
                       {isMarkdownFile(selectedFile.name) && (
                         <Button
                           variant="outline"
@@ -496,10 +604,11 @@ export default function ProjectViewer() {
                       </div>
                     ) : (
                       <CodeMirror
-                        value={fileContent}
+                        value={isEditableFile(selectedFile.name) ? editedContent : fileContent}
                         height="100%"
                         extensions={[getLanguageExtension(selectedFile.name)]}
-                        editable={false}
+                        editable={isEditableFile(selectedFile.name)}
+                        onChange={handleEditorChange}
                         theme="dark"
                         className="h-full"
                       />
@@ -635,6 +744,27 @@ export default function ProjectViewer() {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={handleDeleteFolder} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
               Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Unsaved Changes Confirmation */}
+      <AlertDialog open={!!pendingFileSwitch} onOpenChange={() => setPendingFileSwitch(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Unsaved Changes</AlertDialogTitle>
+            <AlertDialogDescription>
+              You have unsaved changes in "{selectedFile?.name}". Would you like to save before switching files?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setPendingFileSwitch(null)}>Cancel</AlertDialogCancel>
+            <Button variant="outline" onClick={handleDiscardAndSwitch}>
+              Discard
+            </Button>
+            <AlertDialogAction onClick={handleSaveAndSwitch}>
+              Save & Switch
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

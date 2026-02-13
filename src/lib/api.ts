@@ -240,6 +240,16 @@ class ApiClient {
     );
   }
 
+  async updateFile(projectId: string, filePath: string, content: string) {
+    return this.request<{ path: string; size: number; saved: boolean }>(
+      `/projects/${projectId}/files`,
+      {
+        method: 'PUT',
+        body: JSON.stringify({ path: filePath, content }),
+      }
+    );
+  }
+
   // Jobs
   async listJobs() {
     return this.request<{ jobs: Job[] }>('/jobs');
