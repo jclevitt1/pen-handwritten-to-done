@@ -205,6 +205,41 @@ class ApiClient {
     );
   }
 
+  // File/folder management
+  async deleteFile(projectId: string, filePath: string) {
+    return this.request<{ deleted: string }>(
+      `/projects/${projectId}/files?file_path=${encodeURIComponent(filePath)}`,
+      { method: 'DELETE' }
+    );
+  }
+
+  async moveFile(projectId: string, fromPath: string, toPath: string) {
+    return this.request<{ from: string; to: string }>(
+      `/projects/${projectId}/files/move`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ from_path: fromPath, to_path: toPath }),
+      }
+    );
+  }
+
+  async createFolder(projectId: string, folderPath: string) {
+    return this.request<{ created: string }>(
+      `/projects/${projectId}/folders`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ path: folderPath }),
+      }
+    );
+  }
+
+  async deleteFolder(projectId: string, folderPath: string) {
+    return this.request<{ deleted: string; files_removed: number }>(
+      `/projects/${projectId}/folders?folder_path=${encodeURIComponent(folderPath)}`,
+      { method: 'DELETE' }
+    );
+  }
+
   // Jobs
   async listJobs() {
     return this.request<{ jobs: Job[] }>('/jobs');

@@ -2,7 +2,7 @@ import { useAuth } from '@clerk/clerk-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useEffect, useState } from 'react';
-import { ArrowLeft, Download, Loader2, ExternalLink, Eye, Code } from 'lucide-react';
+import { ArrowLeft, Download, Loader2, ExternalLink, Eye, Code, FolderPlus } from 'lucide-react';
 import CodeMirror from '@uiw/react-codemirror';
 import { javascript } from '@codemirror/lang-javascript';
 import { python } from '@codemirror/lang-python';
@@ -15,10 +15,29 @@ import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import 'katex/dist/katex.min.css';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { FileTree } from '@/components/FileTree';
 import { ChatPanel } from '@/components/ChatPanel';
-import { api, Project, ProjectFile } from '@/lib/api';
+import { api, ProjectFile } from '@/lib/api';
 
 // Check if file is markdown
 function isMarkdownFile(filename: string): boolean {
@@ -69,6 +88,13 @@ export default function ProjectViewer() {
   const [loadingContent, setLoadingContent] = useState(false);
   const [fileVersion, setFileVersion] = useState(0); // For forcing re-fetch after chat edits
   const [showRendered, setShowRendered] = useState(true); // Toggle for markdown rendering
+
+  // Dialog state
+  const [renameDialog, setRenameDialog] = useState<{ file: ProjectFile; newName: string } | null>(null);
+  const [newFolderDialog, setNewFolderDialog] = useState<{ parentPath: string; name: string } | null>(null);
+  const [newFileDialog, setNewFileDialog] = useState<{ parentPath: string; name: string } | null>(null);
+  const [deleteFileConfirm, setDeleteFileConfirm] = useState<ProjectFile | null>(null);
+  const [deleteFolderConfirm, setDeleteFolderConfirm] = useState<string | null>(null);
 
   // Set up API token getter
   useEffect(() => {
@@ -138,6 +164,85 @@ export default function ProjectViewer() {
     queryClient.invalidateQueries({ queryKey: ['projectFiles', projectId] });
     // Bump version to re-fetch current file content
     setFileVersion((v) => v + 1);
+  };
+
+  // File/folder operation handlers
+  const handleDeleteFile = async () => {
+    if (!deleteFileConfirm || !projectId) return;
+    try {
+      await api.deleteFile(projectId, deleteFileConfirm.path);
+      queryClient.invalidateQueries({ queryKey: ['projectFiles', projectId] });
+      if (selectedFile?.path === deleteFileConfirm.path) {
+        setSelectedFile(null);
+      }
+    } catch (e) {
+      console.error('Failed to delete file:', e);
+    }
+    setDeleteFileConfirm(null);
+  };
+
+  const handleRenameFile = async () => {
+    if (!renameDialog || !projectId) return;
+    try {
+      // Get directory from current path
+      const dir = renameDialog.file.path.substring(0, renameDialog.file.path.lastIndexOf('/') + 1);
+      const newPath = dir + renameDialog.newName;
+      await api.moveFile(projectId, renameDialog.file.path, newPath);
+      queryClient.invalidateQueries({ queryKey: ['projectFiles', projectId] });
+      // Update selection if needed
+      if (selectedFile?.path === renameDialog.file.path) {
+        setSelectedFile(null);
+      }
+    } catch (e) {
+      console.error('Failed to rename file:', e);
+    }
+    setRenameDialog(null);
+  };
+
+  const handleCreateFolder = async () => {
+    if (!newFolderDialog || !projectId) return;
+    try {
+      const fullPath = newFolderDialog.parentPath
+        ? `${newFolderDialog.parentPath}/${newFolderDialog.name}`
+        : newFolderDialog.name;
+      await api.createFolder(projectId, fullPath);
+      queryClient.invalidateQueries({ queryKey: ['projectFiles', projectId] });
+    } catch (e) {
+      console.error('Failed to create folder:', e);
+    }
+    setNewFolderDialog(null);
+  };
+
+  const handleCreateFile = async () => {
+    if (!newFileDialog || !projectId) return;
+    try {
+      const fullPath = newFileDialog.parentPath
+        ? `${newFileDialog.parentPath}/${newFileDialog.name}`
+        : newFileDialog.name;
+      // Create empty file
+      await api.uploadProjectFiles(projectId, [
+        { path: fullPath, content_base64: btoa(''), mimeType: 'text/plain' },
+      ]);
+      queryClient.invalidateQueries({ queryKey: ['projectFiles', projectId] });
+    } catch (e) {
+      console.error('Failed to create file:', e);
+    }
+    setNewFileDialog(null);
+  };
+
+  const handleDeleteFolder = async () => {
+    if (!deleteFolderConfirm || !projectId) return;
+    try {
+      await api.deleteFolder(projectId, deleteFolderConfirm);
+      queryClient.invalidateQueries({ queryKey: ['projectFiles', projectId] });
+      // Clear selection if it was inside deleted folder
+      if (selectedFile?.path.startsWith(deleteFolderConfirm + '/')) {
+        setSelectedFile(null);
+      }
+    } catch (e) {
+      console.error('Failed to delete folder:', e);
+    }
+    setDeleteFolderConfirm(null);
   };
 
   // Auto-select first file
@@ -222,15 +327,29 @@ export default function ProjectViewer() {
       <div className="flex-1 flex overflow-hidden">
         {/* File tree sidebar */}
         <div className="w-64 border-r border-border bg-muted/30 overflow-y-auto shrink-0">
-          <div className="p-2 border-b border-border">
+          <div className="p-2 border-b border-border flex items-center justify-between">
             <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
               Files
             </span>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-6 w-6 p-0"
+              onClick={() => setNewFolderDialog({ parentPath: '', name: '' })}
+              title="New folder"
+            >
+              <FolderPlus className="h-4 w-4" />
+            </Button>
           </div>
           <FileTree
             files={files}
             selectedFile={selectedFile}
             onSelectFile={setSelectedFile}
+            onDeleteFile={(file) => setDeleteFileConfirm(file)}
+            onRenameFile={(file) => setRenameDialog({ file, newName: file.name.split('/').pop() || file.name })}
+            onCreateFile={(parentPath) => setNewFileDialog({ parentPath, name: '' })}
+            onCreateFolder={(parentPath) => setNewFolderDialog({ parentPath, name: '' })}
+            onDeleteFolder={(folderPath) => setDeleteFolderConfirm(folderPath)}
           />
         </div>
 
@@ -339,6 +458,118 @@ export default function ProjectViewer() {
           </ResizablePanel>
         </ResizablePanelGroup>
       </div>
+
+      {/* Rename File Dialog */}
+      <Dialog open={!!renameDialog} onOpenChange={() => setRenameDialog(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Rename File</DialogTitle>
+            <DialogDescription>Enter a new name for the file.</DialogDescription>
+          </DialogHeader>
+          <Input
+            value={renameDialog?.newName || ''}
+            onChange={(e) =>
+              setRenameDialog(renameDialog ? { ...renameDialog, newName: e.target.value } : null)
+            }
+            placeholder="filename.txt"
+            onKeyDown={(e) => e.key === 'Enter' && handleRenameFile()}
+          />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRenameDialog(null)}>
+              Cancel
+            </Button>
+            <Button onClick={handleRenameFile}>Rename</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* New Folder Dialog */}
+      <Dialog open={!!newFolderDialog} onOpenChange={() => setNewFolderDialog(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>New Folder</DialogTitle>
+            <DialogDescription>
+              Create a new folder{newFolderDialog?.parentPath ? ` in ${newFolderDialog.parentPath}` : ''}.
+            </DialogDescription>
+          </DialogHeader>
+          <Input
+            value={newFolderDialog?.name || ''}
+            onChange={(e) =>
+              setNewFolderDialog(newFolderDialog ? { ...newFolderDialog, name: e.target.value } : null)
+            }
+            placeholder="folder-name"
+            onKeyDown={(e) => e.key === 'Enter' && handleCreateFolder()}
+          />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setNewFolderDialog(null)}>
+              Cancel
+            </Button>
+            <Button onClick={handleCreateFolder}>Create</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* New File Dialog */}
+      <Dialog open={!!newFileDialog} onOpenChange={() => setNewFileDialog(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>New File</DialogTitle>
+            <DialogDescription>
+              Create a new file{newFileDialog?.parentPath ? ` in ${newFileDialog.parentPath}` : ''}.
+            </DialogDescription>
+          </DialogHeader>
+          <Input
+            value={newFileDialog?.name || ''}
+            onChange={(e) =>
+              setNewFileDialog(newFileDialog ? { ...newFileDialog, name: e.target.value } : null)
+            }
+            placeholder="filename.txt"
+            onKeyDown={(e) => e.key === 'Enter' && handleCreateFile()}
+          />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setNewFileDialog(null)}>
+              Cancel
+            </Button>
+            <Button onClick={handleCreateFile}>Create</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete File Confirmation */}
+      <AlertDialog open={!!deleteFileConfirm} onOpenChange={() => setDeleteFileConfirm(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete File</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete "{deleteFileConfirm?.name}"? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteFile} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete Folder Confirmation */}
+      <AlertDialog open={!!deleteFolderConfirm} onOpenChange={() => setDeleteFolderConfirm(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Folder</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete the folder "{deleteFolderConfirm}" and all its contents? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteFolder} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
