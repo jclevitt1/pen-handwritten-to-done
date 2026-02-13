@@ -253,6 +253,65 @@ class ApiClient {
     );
   }
 
+  // Get presigned URL for direct S3 upload
+  async getPresignedUploadUrl(path: string, contentType: string) {
+    return this.request<{
+      upload_url: string;
+      file_path: string;
+      expires_in: number;
+      bucket: string;
+    }>('/presigned-upload-url', {
+      method: 'POST',
+      body: JSON.stringify({
+        path,
+        content_type: contentType,
+      }),
+    });
+  }
+
+  // Upload file directly to S3 using presigned URL (for large files)
+  async uploadFileDirect(
+    file: File,
+    destinationPath: string,
+    onProgress?: (percent: number) => void
+  ): Promise<string> {
+    // 1. Get presigned URL from backend
+    const presigned = await this.getPresignedUploadUrl(
+      destinationPath,
+      file.type || 'application/octet-stream'
+    );
+
+    // 2. Upload directly to S3 using XMLHttpRequest for progress tracking
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+
+      // Progress tracking
+      if (onProgress) {
+        xhr.upload.addEventListener('progress', (e) => {
+          if (e.lengthComputable) {
+            onProgress(Math.round((e.loaded / e.total) * 100));
+          }
+        });
+      }
+
+      xhr.addEventListener('load', () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          resolve(presigned.file_path);
+        } else {
+          reject(new Error(`Upload failed with status ${xhr.status}`));
+        }
+      });
+
+      xhr.addEventListener('error', () => {
+        reject(new Error('Upload failed - network error'));
+      });
+
+      xhr.open('PUT', presigned.upload_url);
+      xhr.setRequestHeader('Content-Type', file.type || 'application/octet-stream');
+      xhr.send(file);
+    });
+  }
+
   // Execute notes processing (creates project from handwritten notes)
   async executeNotes(data: {
     file_path: string;

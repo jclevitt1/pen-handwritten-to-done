@@ -155,32 +155,26 @@ export function NewProjectModal({
         project_type: projectType,
       });
 
-      setStatusMessage(`Uploading ${uploadFiles.length} files...`);
+      // 2. Upload files directly to S3 using presigned URLs
+      let uploadedCount = 0;
+      for (const file of uploadFiles) {
+        // Use webkitRelativePath for folder structure, fallback to name
+        const relativePath = file.webkitRelativePath || file.name;
+        // Put files in project_files/{project_id}/{path}
+        const destinationPath = `project_files/${project.project_id}/${relativePath}`;
 
-      // 2. Read and upload files as base64 (handles UTF-8 and binary)
-      const filesData = await Promise.all(
-        uploadFiles.map(async (file) => {
-          const arrayBuffer = await file.arrayBuffer();
-          const bytes = new Uint8Array(arrayBuffer);
-          // Convert to base64 in chunks to avoid call stack issues with large files
-          let binary = '';
-          const chunkSize = 8192;
-          for (let i = 0; i < bytes.length; i += chunkSize) {
-            const chunk = bytes.subarray(i, i + chunkSize);
-            binary += String.fromCharCode(...chunk);
-          }
-          const base64 = btoa(binary);
-          // Use webkitRelativePath for folder structure, fallback to name
-          const path = file.webkitRelativePath || file.name;
-          return {
-            path,
-            content_base64: base64,
-            mimeType: file.type || 'application/octet-stream',
-          };
-        })
-      );
+        setStatusMessage(`Uploading ${uploadedCount + 1}/${uploadFiles.length}: ${file.name}`);
 
-      await api.uploadProjectFiles(project.project_id, filesData);
+        await api.uploadFileDirect(file, destinationPath, (percent) => {
+          setStatusMessage(
+            `Uploading ${uploadedCount + 1}/${uploadFiles.length}: ${file.name} (${percent}%)`
+          );
+        });
+
+        uploadedCount++;
+      }
+
+      setStatusMessage('Finalizing...');
 
       onProjectCreated(project.project_id);
       handleClose();
