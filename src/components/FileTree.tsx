@@ -8,7 +8,7 @@ import {
   ContextMenuSeparator,
   ContextMenuTrigger,
 } from '@/components/ui/context-menu';
-import { DndContext, DragEndEvent, useDraggable, useDroppable, DragOverlay } from '@dnd-kit/core';
+import { DndContext, DragEndEvent, useDraggable, useDroppable, DragOverlay, useSensor, useSensors, PointerSensor } from '@dnd-kit/core';
 
 interface FileTreeProps {
   files: ProjectFile[];
@@ -298,6 +298,16 @@ export function FileTree({
   const [activeFile, setActiveFile] = useState<ProjectFile | null>(null);
   const tree = buildTree(files);
 
+  // Configure sensor with distance constraint so clicks work normally
+  // Drag only activates after moving 8 pixels
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    })
+  );
+
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     setActiveFile(null);
@@ -336,7 +346,7 @@ export function FileTree({
   }
 
   return (
-    <DndContext onDragEnd={handleDragEnd} onDragStart={handleDragStart}>
+    <DndContext sensors={sensors} onDragEnd={handleDragEnd} onDragStart={handleDragStart}>
       <RootDropZone>
         {tree.map(node => (
           <TreeNodeComponent
