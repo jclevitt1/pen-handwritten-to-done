@@ -26,6 +26,12 @@ function isMarkdownFile(filename: string): boolean {
   return ext === 'md' || ext === 'markdown';
 }
 
+// Check if file is a PDF
+function isPdfFile(filename: string): boolean {
+  const ext = filename.split('.').pop()?.toLowerCase();
+  return ext === 'pdf';
+}
+
 // Get language extension based on file extension
 function getLanguageExtension(filename: string) {
   const ext = filename.split('.').pop()?.toLowerCase();
@@ -59,6 +65,7 @@ export default function ProjectViewer() {
   const { isLoaded, isSignedIn, getToken } = useAuth();
   const [selectedFile, setSelectedFile] = useState<ProjectFile | null>(null);
   const [fileContent, setFileContent] = useState<string>('');
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null); // For PDF viewing
   const [loadingContent, setLoadingContent] = useState(false);
   const [fileVersion, setFileVersion] = useState(0); // For forcing re-fetch after chat edits
   const [showRendered, setShowRendered] = useState(true); // Toggle for markdown rendering
@@ -97,11 +104,21 @@ export default function ProjectViewer() {
 
     const loadContent = async () => {
       setLoadingContent(true);
+      setPdfUrl(null);
+      setFileContent('');
+
       try {
         const result = await api.getDownloadUrl(projectId, selectedFile.name);
-        const response = await fetch(result.download_url);
-        const text = await response.text();
-        setFileContent(text);
+
+        // For PDFs, just use the URL directly in an iframe
+        if (isPdfFile(selectedFile.name)) {
+          setPdfUrl(result.download_url);
+        } else {
+          // For text files, fetch the content
+          const response = await fetch(result.download_url);
+          const text = await response.text();
+          setFileContent(text);
+        }
       } catch (e) {
         console.error('Failed to load file content:', e);
         setFileContent('// Failed to load file content');
@@ -245,6 +262,17 @@ export default function ProjectViewer() {
                           )}
                         </Button>
                       )}
+                      {isPdfFile(selectedFile.name) && pdfUrl && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => window.open(pdfUrl, '_blank')}
+                          className="h-6 px-2 text-xs"
+                        >
+                          <ExternalLink className="w-3 h-3 mr-1" />
+                          Open in new tab
+                        </Button>
+                      )}
                       {selectedFile.size && (
                         <span className="text-xs text-muted-foreground">
                           ({(selectedFile.size / 1024).toFixed(1)} KB)
@@ -253,12 +281,18 @@ export default function ProjectViewer() {
                     </div>
                   </div>
 
-                  {/* Code editor or Markdown renderer */}
+                  {/* Code editor, Markdown renderer, or PDF viewer */}
                   <div className="flex-1 overflow-hidden">
                     {loadingContent ? (
                       <div className="h-full flex items-center justify-center">
                         <Loader2 className="w-6 h-6 animate-spin text-primary" />
                       </div>
+                    ) : isPdfFile(selectedFile.name) && pdfUrl ? (
+                      <iframe
+                        src={pdfUrl}
+                        className="w-full h-full border-0"
+                        title={selectedFile.name}
+                      />
                     ) : isMarkdownFile(selectedFile.name) && showRendered ? (
                       <div className="h-full overflow-auto p-8 bg-background">
                         <article className="prose prose-invert prose-headings:font-semibold prose-headings:text-foreground prose-h1:text-3xl prose-h1:mb-6 prose-h1:mt-8 prose-h2:text-2xl prose-h2:mb-4 prose-h2:mt-6 prose-h3:text-xl prose-h3:mb-3 prose-h3:mt-4 prose-p:text-muted-foreground prose-p:leading-7 prose-p:mb-4 prose-li:text-muted-foreground prose-strong:text-foreground prose-code:text-primary prose-code:bg-muted prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-pre:bg-muted prose-pre:border prose-pre:border-border max-w-none">
