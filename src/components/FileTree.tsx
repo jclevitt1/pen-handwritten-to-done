@@ -105,7 +105,7 @@ function TreeNodeComponent({
             <button
               onClick={() => setExpanded(!expanded)}
               className="w-full flex items-center gap-1 px-2 py-1 hover:bg-muted rounded text-sm text-left"
-              style={{ paddingLeft: `${depth * 12 + 8}px` }}
+              style={{ paddingLeft: `${depth * 16 + 8}px` }}
             >
               {expanded ? (
                 <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0" />
@@ -165,7 +165,7 @@ function TreeNodeComponent({
           className={`w-full flex items-center gap-1 px-2 py-1 rounded text-sm text-left ${
             isSelected ? 'bg-primary/10 text-primary' : 'hover:bg-muted'
           }`}
-          style={{ paddingLeft: `${depth * 12 + 8}px` }}
+          style={{ paddingLeft: `${depth * 16 + 8}px` }}
         >
           <FileText className="w-4 h-4 text-muted-foreground shrink-0" />
           <span className="truncate">{node.name}</span>
