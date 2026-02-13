@@ -159,7 +159,12 @@ export function NewProjectModal({
       let uploadedCount = 0;
       for (const file of uploadFiles) {
         // Use webkitRelativePath for folder structure, fallback to name
-        const relativePath = file.webkitRelativePath || file.name;
+        const fullPath = file.webkitRelativePath || file.name;
+        // Strip the root folder name (first path component) since project is already named after it
+        // e.g., "my-project/src/file.js" -> "src/file.js"
+        const relativePath = fullPath.includes('/')
+          ? fullPath.split('/').slice(1).join('/')
+          : fullPath;
         // Put files in project_files/{project_id}/{path}
         const destinationPath = `project_files/${project.project_id}/${relativePath}`;
 
