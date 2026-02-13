@@ -109,7 +109,9 @@ export default function ProjectViewer() {
 
       try {
         // Use path (full S3 key) for download, not just name
-        const result = await api.getDownloadUrl(projectId, selectedFile.path);
+        // For PDFs, use 'view' mode so they display inline instead of downloading
+        const mode = isPdfFile(selectedFile.name) ? 'view' : 'download';
+        const result = await api.getDownloadUrl(projectId, selectedFile.path, mode);
 
         // For PDFs, just use the URL directly in an iframe
         if (isPdfFile(selectedFile.name)) {

@@ -193,9 +193,9 @@ class ApiClient {
     );
   }
 
-  async getDownloadUrl(projectId: string, fileKey: string) {
+  async getDownloadUrl(projectId: string, fileKey: string, mode: 'download' | 'view' = 'download') {
     return this.request<{ download_url: string; file_key: string; expires_in: number }>(
-      `/projects/${projectId}/download?file_key=${encodeURIComponent(fileKey)}`
+      `/projects/${projectId}/download?file_key=${encodeURIComponent(fileKey)}&mode=${mode}`
     );
   }
 
