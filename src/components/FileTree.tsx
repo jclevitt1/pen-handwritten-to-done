@@ -8,6 +8,7 @@ import {
   ContextMenuSeparator,
   ContextMenuTrigger,
 } from '@/components/ui/context-menu';
+import { DndContext, DragEndEvent, useDraggable, useDroppable, DragOverlay } from '@dnd-kit/core';
 
 interface FileTreeProps {
   files: ProjectFile[];
@@ -16,6 +17,7 @@ interface FileTreeProps {
   // File operations
   onDeleteFile?: (file: ProjectFile) => void;
   onRenameFile?: (file: ProjectFile) => void;
+  onMoveFile?: (fromPath: string, toFolderPath: string) => void;
   // Folder operations
   onCreateFile?: (parentPath: string) => void;
   onCreateFolder?: (parentPath: string) => void;
@@ -73,6 +75,131 @@ function buildTree(files: ProjectFile[]): TreeNode[] {
   return sortNodes(root);
 }
 
+// Draggable file component
+function DraggableFile({
+  node,
+  depth,
+  isSelected,
+  onSelectFile,
+  onDeleteFile,
+  onRenameFile,
+}: {
+  node: TreeNode;
+  depth: number;
+  isSelected: boolean;
+  onSelectFile: (file: ProjectFile) => void;
+  onDeleteFile?: (file: ProjectFile) => void;
+  onRenameFile?: (file: ProjectFile) => void;
+}) {
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+    id: node.file?.name || node.path,
+    data: { type: 'file', file: node.file, path: node.file?.name },
+  });
+
+  return (
+    <ContextMenu>
+      <ContextMenuTrigger asChild>
+        <button
+          ref={setNodeRef}
+          {...listeners}
+          {...attributes}
+          onClick={() => node.file && onSelectFile(node.file)}
+          className={`w-full flex items-center gap-1 px-2 py-1 rounded text-sm text-left ${
+            isDragging ? 'opacity-50' : ''
+          } ${isSelected ? 'bg-primary/10 text-primary' : 'hover:bg-muted'}`}
+          style={{ paddingLeft: `${depth * 16 + 8}px` }}
+        >
+          <FileText className="w-4 h-4 text-muted-foreground shrink-0" />
+          <span className="truncate">{node.name}</span>
+        </button>
+      </ContextMenuTrigger>
+      <ContextMenuContent>
+        <ContextMenuItem onClick={() => node.file && onRenameFile?.(node.file)}>
+          <Pencil className="mr-2 h-4 w-4" />
+          Rename
+        </ContextMenuItem>
+        <ContextMenuSeparator />
+        <ContextMenuItem
+          className="text-destructive focus:text-destructive"
+          onClick={() => node.file && onDeleteFile?.(node.file)}
+        >
+          <Trash className="mr-2 h-4 w-4" />
+          Delete
+        </ContextMenuItem>
+      </ContextMenuContent>
+    </ContextMenu>
+  );
+}
+
+// Droppable folder component
+function DroppableFolder({
+  node,
+  depth,
+  children,
+  onToggle,
+  expanded,
+  onCreateFile,
+  onCreateFolder,
+  onDeleteFolder,
+}: {
+  node: TreeNode;
+  depth: number;
+  children: React.ReactNode;
+  onToggle: () => void;
+  expanded: boolean;
+  onCreateFile?: (parentPath: string) => void;
+  onCreateFolder?: (parentPath: string) => void;
+  onDeleteFolder?: (folderPath: string) => void;
+}) {
+  const { setNodeRef, isOver } = useDroppable({
+    id: node.path,
+    data: { type: 'folder', path: node.path },
+  });
+
+  return (
+    <div ref={setNodeRef}>
+      <ContextMenu>
+        <ContextMenuTrigger asChild>
+          <button
+            onClick={onToggle}
+            className={`w-full flex items-center gap-1 px-2 py-1 rounded text-sm text-left ${
+              isOver ? 'bg-primary/20 ring-2 ring-primary' : 'hover:bg-muted'
+            }`}
+            style={{ paddingLeft: `${depth * 16 + 8}px` }}
+          >
+            {expanded ? (
+              <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0" />
+            ) : (
+              <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
+            )}
+            <Folder className={`w-4 h-4 shrink-0 ${isOver ? 'text-primary' : 'text-blue-500'}`} />
+            <span className="truncate">{node.name}</span>
+          </button>
+        </ContextMenuTrigger>
+        <ContextMenuContent>
+          <ContextMenuItem onClick={() => onCreateFile?.(node.path)}>
+            <FilePlus className="mr-2 h-4 w-4" />
+            New File
+          </ContextMenuItem>
+          <ContextMenuItem onClick={() => onCreateFolder?.(node.path)}>
+            <FolderPlus className="mr-2 h-4 w-4" />
+            New Folder
+          </ContextMenuItem>
+          <ContextMenuSeparator />
+          <ContextMenuItem
+            className="text-destructive focus:text-destructive"
+            onClick={() => onDeleteFolder?.(node.path)}
+          >
+            <Trash className="mr-2 h-4 w-4" />
+            Delete Folder
+          </ContextMenuItem>
+        </ContextMenuContent>
+      </ContextMenu>
+      {expanded && children}
+    </div>
+  );
+}
+
 function TreeNodeComponent({
   node,
   depth,
@@ -99,93 +226,61 @@ function TreeNodeComponent({
 
   if (node.isFolder) {
     return (
-      <div>
-        <ContextMenu>
-          <ContextMenuTrigger asChild>
-            <button
-              onClick={() => setExpanded(!expanded)}
-              className="w-full flex items-center gap-1 px-2 py-1 hover:bg-muted rounded text-sm text-left"
-              style={{ paddingLeft: `${depth * 16 + 8}px` }}
-            >
-              {expanded ? (
-                <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0" />
-              ) : (
-                <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
-              )}
-              <Folder className="w-4 h-4 text-blue-500 shrink-0" />
-              <span className="truncate">{node.name}</span>
-            </button>
-          </ContextMenuTrigger>
-          <ContextMenuContent>
-            <ContextMenuItem onClick={() => onCreateFile?.(node.path)}>
-              <FilePlus className="mr-2 h-4 w-4" />
-              New File
-            </ContextMenuItem>
-            <ContextMenuItem onClick={() => onCreateFolder?.(node.path)}>
-              <FolderPlus className="mr-2 h-4 w-4" />
-              New Folder
-            </ContextMenuItem>
-            <ContextMenuSeparator />
-            <ContextMenuItem
-              className="text-destructive focus:text-destructive"
-              onClick={() => onDeleteFolder?.(node.path)}
-            >
-              <Trash className="mr-2 h-4 w-4" />
-              Delete Folder
-            </ContextMenuItem>
-          </ContextMenuContent>
-        </ContextMenu>
-        {expanded && (
-          <div>
-            {node.children.map(child => (
-              <TreeNodeComponent
-                key={child.path}
-                node={child}
-                depth={depth + 1}
-                selectedFile={selectedFile}
-                onSelectFile={onSelectFile}
-                onDeleteFile={onDeleteFile}
-                onRenameFile={onRenameFile}
-                onCreateFile={onCreateFile}
-                onCreateFolder={onCreateFolder}
-                onDeleteFolder={onDeleteFolder}
-              />
-            ))}
-          </div>
-        )}
-      </div>
+      <DroppableFolder
+        node={node}
+        depth={depth}
+        expanded={expanded}
+        onToggle={() => setExpanded(!expanded)}
+        onCreateFile={onCreateFile}
+        onCreateFolder={onCreateFolder}
+        onDeleteFolder={onDeleteFolder}
+      >
+        <div>
+          {node.children.map(child => (
+            <TreeNodeComponent
+              key={child.path}
+              node={child}
+              depth={depth + 1}
+              selectedFile={selectedFile}
+              onSelectFile={onSelectFile}
+              onDeleteFile={onDeleteFile}
+              onRenameFile={onRenameFile}
+              onCreateFile={onCreateFile}
+              onCreateFolder={onCreateFolder}
+              onDeleteFolder={onDeleteFolder}
+            />
+          ))}
+        </div>
+      </DroppableFolder>
     );
   }
 
   return (
-    <ContextMenu>
-      <ContextMenuTrigger asChild>
-        <button
-          onClick={() => node.file && onSelectFile(node.file)}
-          className={`w-full flex items-center gap-1 px-2 py-1 rounded text-sm text-left ${
-            isSelected ? 'bg-primary/10 text-primary' : 'hover:bg-muted'
-          }`}
-          style={{ paddingLeft: `${depth * 16 + 8}px` }}
-        >
-          <FileText className="w-4 h-4 text-muted-foreground shrink-0" />
-          <span className="truncate">{node.name}</span>
-        </button>
-      </ContextMenuTrigger>
-      <ContextMenuContent>
-        <ContextMenuItem onClick={() => node.file && onRenameFile?.(node.file)}>
-          <Pencil className="mr-2 h-4 w-4" />
-          Rename
-        </ContextMenuItem>
-        <ContextMenuSeparator />
-        <ContextMenuItem
-          className="text-destructive focus:text-destructive"
-          onClick={() => node.file && onDeleteFile?.(node.file)}
-        >
-          <Trash className="mr-2 h-4 w-4" />
-          Delete
-        </ContextMenuItem>
-      </ContextMenuContent>
-    </ContextMenu>
+    <DraggableFile
+      node={node}
+      depth={depth}
+      isSelected={isSelected}
+      onSelectFile={onSelectFile}
+      onDeleteFile={onDeleteFile}
+      onRenameFile={onRenameFile}
+    />
+  );
+}
+
+// Root drop zone for moving files to root level
+function RootDropZone({ children }: { children: React.ReactNode }) {
+  const { setNodeRef, isOver } = useDroppable({
+    id: '__root__',
+    data: { type: 'folder', path: '' },
+  });
+
+  return (
+    <div
+      ref={setNodeRef}
+      className={`py-2 min-h-[50px] ${isOver ? 'bg-primary/10' : ''}`}
+    >
+      {children}
+    </div>
   );
 }
 
@@ -195,11 +290,42 @@ export function FileTree({
   onSelectFile,
   onDeleteFile,
   onRenameFile,
+  onMoveFile,
   onCreateFile,
   onCreateFolder,
   onDeleteFolder,
 }: FileTreeProps) {
+  const [activeFile, setActiveFile] = useState<ProjectFile | null>(null);
   const tree = buildTree(files);
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    setActiveFile(null);
+
+    if (!over || !onMoveFile) return;
+
+    const activeData = active.data.current as { type: string; path: string; file: ProjectFile } | undefined;
+    const overData = over.data.current as { type: string; path: string } | undefined;
+
+    if (!activeData || activeData.type !== 'file') return;
+    if (!overData || overData.type !== 'folder') return;
+
+    const fromPath = activeData.path;
+    const toFolderPath = overData.path;
+
+    // Don't move to same parent folder
+    const fromFolder = fromPath.includes('/') ? fromPath.substring(0, fromPath.lastIndexOf('/')) : '';
+    if (fromFolder === toFolderPath) return;
+
+    onMoveFile(fromPath, toFolderPath);
+  };
+
+  const handleDragStart = (event: { active: { data: { current: unknown } } }) => {
+    const data = event.active.data.current as { file?: ProjectFile } | undefined;
+    if (data?.file) {
+      setActiveFile(data.file);
+    }
+  };
 
   if (files.length === 0) {
     return (
@@ -210,21 +336,31 @@ export function FileTree({
   }
 
   return (
-    <div className="py-2">
-      {tree.map(node => (
-        <TreeNodeComponent
-          key={node.path}
-          node={node}
-          depth={0}
-          selectedFile={selectedFile}
-          onSelectFile={onSelectFile}
-          onDeleteFile={onDeleteFile}
-          onRenameFile={onRenameFile}
-          onCreateFile={onCreateFile}
-          onCreateFolder={onCreateFolder}
-          onDeleteFolder={onDeleteFolder}
-        />
-      ))}
-    </div>
+    <DndContext onDragEnd={handleDragEnd} onDragStart={handleDragStart}>
+      <RootDropZone>
+        {tree.map(node => (
+          <TreeNodeComponent
+            key={node.path}
+            node={node}
+            depth={0}
+            selectedFile={selectedFile}
+            onSelectFile={onSelectFile}
+            onDeleteFile={onDeleteFile}
+            onRenameFile={onRenameFile}
+            onCreateFile={onCreateFile}
+            onCreateFolder={onCreateFolder}
+            onDeleteFolder={onDeleteFolder}
+          />
+        ))}
+      </RootDropZone>
+      <DragOverlay>
+        {activeFile && (
+          <div className="flex items-center gap-1 px-2 py-1 bg-background border rounded shadow-lg text-sm">
+            <FileText className="w-4 h-4 text-muted-foreground" />
+            <span>{activeFile.name.split('/').pop()}</span>
+          </div>
+        )}
+      </DragOverlay>
+    </DndContext>
   );
 }

@@ -245,6 +245,23 @@ export default function ProjectViewer() {
     setDeleteFolderConfirm(null);
   };
 
+  // Handle drag-drop file move
+  const handleMoveFileToFolder = async (fromPath: string, toFolderPath: string) => {
+    if (!projectId) return;
+    try {
+      const fileName = fromPath.split('/').pop() || fromPath;
+      const newPath = toFolderPath ? `${toFolderPath}/${fileName}` : fileName;
+      await api.moveFile(projectId, fromPath, newPath);
+      queryClient.invalidateQueries({ queryKey: ['projectFiles', projectId] });
+      // Update selection if moved file was selected
+      if (selectedFile?.name === fromPath) {
+        setSelectedFile(null);
+      }
+    } catch (e) {
+      console.error('Failed to move file:', e);
+    }
+  };
+
   // Auto-select first file
   useEffect(() => {
     if (files.length > 0 && !selectedFile) {
@@ -348,6 +365,7 @@ export default function ProjectViewer() {
               onSelectFile={setSelectedFile}
               onDeleteFile={(file) => setDeleteFileConfirm(file)}
               onRenameFile={(file) => setRenameDialog({ file, newName: file.name.split('/').pop() || file.name })}
+              onMoveFile={handleMoveFileToFolder}
               onCreateFile={(parentPath) => setNewFileDialog({ parentPath, name: '' })}
               onCreateFolder={(parentPath) => setNewFolderDialog({ parentPath, name: '' })}
               onDeleteFolder={(folderPath) => setDeleteFolderConfirm(folderPath)}
