@@ -324,37 +324,42 @@ export default function ProjectViewer() {
       </header>
 
       {/* Main content */}
-      <div className="flex-1 flex overflow-hidden">
+      <ResizablePanelGroup direction="horizontal" className="flex-1">
         {/* File tree sidebar */}
-        <div className="w-64 border-r border-border bg-muted/30 overflow-y-auto shrink-0">
-          <div className="p-2 border-b border-border flex items-center justify-between">
-            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-              Files
-            </span>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-6 w-6 p-0"
-              onClick={() => setNewFolderDialog({ parentPath: '', name: '' })}
-              title="New folder"
-            >
-              <FolderPlus className="h-4 w-4" />
-            </Button>
+        <ResizablePanel defaultSize={20} minSize={10} maxSize={40}>
+          <div className="h-full border-r border-border bg-muted/30 overflow-y-auto">
+            <div className="p-2 border-b border-border flex items-center justify-between">
+              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                Files
+              </span>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 w-6 p-0"
+                onClick={() => setNewFolderDialog({ parentPath: '', name: '' })}
+                title="New folder"
+              >
+                <FolderPlus className="h-4 w-4" />
+              </Button>
+            </div>
+            <FileTree
+              files={files}
+              selectedFile={selectedFile}
+              onSelectFile={setSelectedFile}
+              onDeleteFile={(file) => setDeleteFileConfirm(file)}
+              onRenameFile={(file) => setRenameDialog({ file, newName: file.name.split('/').pop() || file.name })}
+              onCreateFile={(parentPath) => setNewFileDialog({ parentPath, name: '' })}
+              onCreateFolder={(parentPath) => setNewFolderDialog({ parentPath, name: '' })}
+              onDeleteFolder={(folderPath) => setDeleteFolderConfirm(folderPath)}
+            />
           </div>
-          <FileTree
-            files={files}
-            selectedFile={selectedFile}
-            onSelectFile={setSelectedFile}
-            onDeleteFile={(file) => setDeleteFileConfirm(file)}
-            onRenameFile={(file) => setRenameDialog({ file, newName: file.name.split('/').pop() || file.name })}
-            onCreateFile={(parentPath) => setNewFileDialog({ parentPath, name: '' })}
-            onCreateFolder={(parentPath) => setNewFolderDialog({ parentPath, name: '' })}
-            onDeleteFolder={(folderPath) => setDeleteFolderConfirm(folderPath)}
-          />
-        </div>
+        </ResizablePanel>
+
+        <ResizableHandle withHandle />
 
         {/* Editor + Chat pane */}
-        <ResizablePanelGroup direction="vertical" className="flex-1">
+        <ResizablePanel defaultSize={80}>
+          <ResizablePanelGroup direction="vertical" className="h-full">
           {/* Editor panel */}
           <ResizablePanel defaultSize={70} minSize={30}>
             <div className="h-full flex flex-col overflow-hidden">
@@ -457,7 +462,8 @@ export default function ProjectViewer() {
             />
           </ResizablePanel>
         </ResizablePanelGroup>
-      </div>
+        </ResizablePanel>
+      </ResizablePanelGroup>
 
       {/* Rename File Dialog */}
       <Dialog open={!!renameDialog} onOpenChange={() => setRenameDialog(null)}>
