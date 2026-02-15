@@ -35,6 +35,7 @@ export interface ProjectFile {
   path: string;    // S3 key without bucket prefix
   mime_type?: string;
   size: number;
+  type?: 'file' | 'folder';  // Explicit type for empty folders
 }
 
 export interface Job {

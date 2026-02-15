@@ -40,6 +40,9 @@ function buildTree(files: ProjectFile[]): TreeNode[] {
     const parts = file.name.split('/');
     let current = root;
 
+    // Check if this entry is explicitly a folder (from backend type field)
+    const isExplicitFolder = (file as any).type === 'folder';
+
     for (let i = 0; i < parts.length; i++) {
       const part = parts[i];
       const isLast = i === parts.length - 1;
@@ -48,14 +51,19 @@ function buildTree(files: ProjectFile[]): TreeNode[] {
       let node = current.find(n => n.name === part);
 
       if (!node) {
+        // For explicit folders, the last part is also a folder
+        const nodeIsFolder = !isLast || isExplicitFolder;
         node = {
           name: part,
           path,
-          isFolder: !isLast,
+          isFolder: nodeIsFolder,
           children: [],
-          file: isLast ? file : undefined,
+          file: (isLast && !isExplicitFolder) ? file : undefined,
         };
         current.push(node);
+      } else if (isLast && isExplicitFolder) {
+        // If we found an existing node and this is an explicit folder, ensure it's marked as folder
+        node.isFolder = true;
       }
 
       current = node.children;
