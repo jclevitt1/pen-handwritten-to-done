@@ -8,7 +8,7 @@ const SignUp = () => {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="w-full max-w-md mx-auto"
+        className="w-full max-w-md"
       >
         {/* Logo */}
         <a href="/" className="flex items-center gap-2 justify-center mb-8">
@@ -32,7 +32,7 @@ const SignUp = () => {
         <ClerkSignUp
           appearance={{
             elements: {
-              rootBox: 'w-full flex justify-center',
+              rootBox: 'w-full',
               card: 'bg-card border border-border shadow-lg',
               headerTitle: 'text-foreground',
               headerSubtitle: 'text-muted-foreground',
