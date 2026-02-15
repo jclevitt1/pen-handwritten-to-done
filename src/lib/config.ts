@@ -1,13 +1,17 @@
 // Environment configuration
-// Same Clerk instance as iOS app
+// Clerk keys should be set via VITE_CLERK_PUBLISHABLE_KEY env var
+// For prod deployment (Vercel), set the prod key in dashboard
+//
+// For LOCAL TESTING with real Clerk dev instance:
+//   Set VITE_CLERK_DEV_KEY in .env.local (not committed)
+//   This overrides the prod key for local dev only
 
 export const config = {
   clerk: {
-    publishableKey: import.meta.env.VITE_CLERK_PUBLISHABLE_KEY ||
-      'pk_test_c3R1bm5pbmctc2VhaG9yc2UtNC5jbGVyay5hY2NvdW50cy5kZXYk',
+    // Dev key override for local testing, falls back to prod key
+    publishableKey: import.meta.env.VITE_CLERK_DEV_KEY || import.meta.env.VITE_CLERK_PUBLISHABLE_KEY || '',
   },
   api: {
-    // Production AWS Lambda URL (env var can override for local dev)
-    baseUrl: import.meta.env.VITE_API_URL || 'https://m9luyofncl.execute-api.us-west-1.amazonaws.com/dev',
+    baseUrl: import.meta.env.VITE_API_URL || 'https://api.usepen.dev',
   },
 } as const;
