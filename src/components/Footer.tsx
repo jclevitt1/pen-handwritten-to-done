@@ -16,7 +16,7 @@ const Footer = () => {
               <path d="M20.5 3.5L3.5 20.5M20.5 3.5L16 3.5M20.5 3.5V8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
             <p className="text-sm text-muted-foreground">
-              Available on <span className="text-foreground font-medium">iPad</span> with Apple Pencil via the <span className="text-primary font-medium">UsePen</span> app
+              Available soon on the App Store
             </p>
           </div>
         </motion.div>
