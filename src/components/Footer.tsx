@@ -39,10 +39,19 @@ const Footer = () => {
             </svg>
             Jeremy Levitt, Founder
           </a>
-          <div className="flex items-center gap-8 opacity-60">
-            <img src="/logos/aws.svg" alt="AWS" className="h-8" />
-            <img src="/logos/berkeley.svg" alt="UC Berkeley" className="h-10" />
-            <img src="/logos/columbia.svg" alt="Columbia University" className="h-10" />
+          <div className="flex items-center gap-2 text-xs text-muted-foreground/50">
+            <span>Founder from</span>
+          </div>
+          <div className="grid grid-cols-3 items-center w-full max-w-lg opacity-60">
+            <div className="flex justify-center">
+              <img src="/logos/aws.svg" alt="AWS" className="h-8 brightness-0 invert" />
+            </div>
+            <div className="flex justify-center">
+              <img src="/logos/berkeley.svg" alt="UC Berkeley" className="h-[70px] brightness-0 invert" />
+            </div>
+            <div className="flex justify-center">
+              <img src="/logos/columbia.svg" alt="Columbia University" className="h-[110px] brightness-0 invert" />
+            </div>
           </div>
         </motion.div>
 
