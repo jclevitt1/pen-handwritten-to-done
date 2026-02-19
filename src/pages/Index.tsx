@@ -2,6 +2,7 @@ import Navbar from "@/components/Navbar";
 import Hero from "@/components/Hero";
 import HowItWorks from "@/components/HowItWorks";
 import UseCases from "@/components/UseCases";
+import ForStudents from "@/components/ForStudents";
 import WaitlistCTA from "@/components/WaitlistCTA";
 import Footer from "@/components/Footer";
 
@@ -13,6 +14,7 @@ const Index = () => {
         <Hero />
         <HowItWorks />
         <UseCases />
+        <ForStudents />
         <WaitlistCTA />
       </main>
       <Footer />
