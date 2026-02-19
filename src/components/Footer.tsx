@@ -44,30 +44,6 @@ const Footer = () => {
             <span className="font-semibold text-lg">Pen</span>
           </div>
 
-          {/* Links */}
-          <div className="flex items-center gap-8 text-sm text-muted-foreground">
-            <a
-              href="https://usepen.dev"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hover:text-foreground transition-colors"
-            >
-              usepen.dev
-            </a>
-            <a
-              href="#"
-              className="hover:text-foreground transition-colors"
-            >
-              Twitter
-            </a>
-            <a
-              href="#"
-              className="hover:text-foreground transition-colors"
-            >
-              Contact
-            </a>
-          </div>
-
           {/* Copyright */}
           <p className="text-sm text-muted-foreground">
             © {new Date().getFullYear()} Pen. All rights reserved.
