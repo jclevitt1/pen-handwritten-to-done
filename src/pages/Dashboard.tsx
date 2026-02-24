@@ -1,13 +1,15 @@
 import { useAuth, useUser } from '@clerk/clerk-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
-import { Folder, Plus, Search, LogOut, Loader2, Pencil, Upload } from 'lucide-react';
+import { Folder, Plus, Search, LogOut, Loader2, Pencil, Upload, PlayCircle } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { api, Project, SourceType } from '@/lib/api';
 import { NewProjectModal } from '@/components/NewProjectModal';
+import { JobsTable } from '@/components/JobsTable';
 
 const Dashboard = () => {
   const { isLoaded, isSignedIn, signOut, getToken } = useAuth();
@@ -109,75 +111,97 @@ const Dashboard = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
         >
-          {/* Title and actions */}
-          <div className="flex items-center justify-between mb-8">
-            <h1 className="text-3xl font-bold">Your Projects</h1>
-            <Button
-              className="bg-primary text-primary-foreground hover:bg-primary/90"
-              onClick={() => setShowNewProjectModal(true)}
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              New Project
-            </Button>
-          </div>
-
-          {/* Search */}
-          <div className="relative mb-8 max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
-              placeholder="Search projects..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-10"
-            />
-          </div>
-
-          {/* Project grid */}
-          {isLoading ? (
-            <div className="flex items-center justify-center py-20">
-              <Loader2 className="w-8 h-8 animate-spin text-primary" />
-            </div>
-          ) : error ? (
-            <div className="text-center py-20">
-              <Folder className="w-16 h-16 mx-auto mb-4 text-muted-foreground/50" />
-              <h2 className="text-xl font-semibold mb-2">Unable to load projects</h2>
-              <p className="text-muted-foreground mb-4">
-                Something went wrong. Please try again later.
-              </p>
-              <Button
-                variant="outline"
-                onClick={() => window.location.reload()}
-                className="mb-4"
-              >
-                Retry
-              </Button>
-            </div>
-          ) : projects.length === 0 ? (
-            <div className="text-center py-20">
-              <Folder className="w-16 h-16 mx-auto mb-4 text-muted-foreground/50" />
-              <h2 className="text-xl font-semibold mb-2">No projects yet</h2>
-              <p className="text-muted-foreground mb-6">
-                Create your first project from the iOS app or upload notes here.
-              </p>
+          <Tabs defaultValue="projects">
+            {/* Title row with tabs and actions */}
+            <div className="flex items-center justify-between mb-8">
+              <div className="flex items-center gap-6">
+                <h1 className="text-3xl font-bold">Dashboard</h1>
+                <TabsList>
+                  <TabsTrigger value="projects" className="flex items-center gap-2">
+                    <Folder className="w-4 h-4" />
+                    Projects
+                  </TabsTrigger>
+                  <TabsTrigger value="jobs" className="flex items-center gap-2">
+                    <PlayCircle className="w-4 h-4" />
+                    Jobs
+                  </TabsTrigger>
+                </TabsList>
+              </div>
               <Button
                 className="bg-primary text-primary-foreground hover:bg-primary/90"
                 onClick={() => setShowNewProjectModal(true)}
               >
                 <Plus className="w-4 h-4 mr-2" />
-                Create Project
+                New Project
               </Button>
             </div>
-          ) : (
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {projects.map((project) => (
-                <ProjectCard
-                  key={project.project_id}
-                  project={project}
-                  onClick={() => handleProjectClick(project)}
+
+            {/* Projects tab */}
+            <TabsContent value="projects">
+              {/* Search */}
+              <div className="relative mb-8 max-w-md">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search projects..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="pl-10"
                 />
-              ))}
-            </div>
-          )}
+              </div>
+
+              {/* Project grid */}
+              {isLoading ? (
+                <div className="flex items-center justify-center py-20">
+                  <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                </div>
+              ) : error ? (
+                <div className="text-center py-20">
+                  <Folder className="w-16 h-16 mx-auto mb-4 text-muted-foreground/50" />
+                  <h2 className="text-xl font-semibold mb-2">Unable to load projects</h2>
+                  <p className="text-muted-foreground mb-4">
+                    Something went wrong. Please try again later.
+                  </p>
+                  <Button
+                    variant="outline"
+                    onClick={() => window.location.reload()}
+                    className="mb-4"
+                  >
+                    Retry
+                  </Button>
+                </div>
+              ) : projects.length === 0 ? (
+                <div className="text-center py-20">
+                  <Folder className="w-16 h-16 mx-auto mb-4 text-muted-foreground/50" />
+                  <h2 className="text-xl font-semibold mb-2">No projects yet</h2>
+                  <p className="text-muted-foreground mb-6">
+                    Create your first project from the iOS app or upload notes here.
+                  </p>
+                  <Button
+                    className="bg-primary text-primary-foreground hover:bg-primary/90"
+                    onClick={() => setShowNewProjectModal(true)}
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Create Project
+                  </Button>
+                </div>
+              ) : (
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                  {projects.map((project) => (
+                    <ProjectCard
+                      key={project.project_id}
+                      project={project}
+                      onClick={() => handleProjectClick(project)}
+                    />
+                  ))}
+                </div>
+              )}
+            </TabsContent>
+
+            {/* Jobs tab */}
+            <TabsContent value="jobs">
+              <JobsTable />
+            </TabsContent>
+          </Tabs>
         </motion.div>
 
         {/* New Project Modal */}

@@ -86,6 +86,7 @@ export interface TaskResult {
   task_id: string;
   task_type: string;
   status: 'NEW' | 'IN_PROGRESS' | 'COMPLETED' | 'FAILED' | 'YIELDED';
+  project_name?: string;
   result?: ChatResponse;
   error?: string;
   created_at: string;
@@ -375,6 +376,11 @@ class ApiClient {
       method: 'POST',
       body: JSON.stringify(data),
     });
+  }
+
+  // List all tasks for the current user
+  async listTasks() {
+    return this.request<{ tasks: TaskResult[] }>('/tasks');
   }
 
   // Get task status (for polling)
