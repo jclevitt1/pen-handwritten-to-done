@@ -1,8 +1,8 @@
 import { useAuth } from '@clerk/clerk-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { useEffect, useState, useCallback } from 'react';
-import { ArrowLeft, Download, Loader2, ExternalLink, Eye, Code, FolderPlus, Save } from 'lucide-react';
+import { useEffect, useState, useCallback, useRef } from 'react';
+import { ArrowLeft, Download, Loader2, ExternalLink, Eye, Code, FolderPlus, FilePlus, Upload, Save } from 'lucide-react';
 import CodeMirror from '@uiw/react-codemirror';
 import { javascript } from '@codemirror/lang-javascript';
 import { python } from '@codemirror/lang-python';
@@ -124,6 +124,10 @@ export default function ProjectViewer() {
   const [isDirty, setIsDirty] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [pendingFileSwitch, setPendingFileSwitch] = useState<ProjectFile | null>(null);
+
+  // Upload state
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   // Dialog state
   const [renameDialog, setRenameDialog] = useState<{ file: ProjectFile; newName: string } | null>(null);
@@ -358,6 +362,39 @@ export default function ProjectViewer() {
     setDeleteFolderConfirm(null);
   };
 
+  // Handle file upload to existing project
+  const handleUploadFiles = async (fileList: FileList) => {
+    if (!projectId || fileList.length === 0) return;
+    setIsUploading(true);
+    try {
+      const filesData = await Promise.all(
+        Array.from(fileList).map(async (file) => {
+          const base64 = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => {
+              const result = reader.result as string;
+              const base64Data = result.split(',')[1] || '';
+              resolve(base64Data);
+            };
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+          });
+          return {
+            path: file.name,
+            content_base64: base64,
+            mimeType: file.type || 'application/octet-stream',
+          };
+        })
+      );
+      await api.uploadProjectFiles(projectId, filesData);
+      queryClient.invalidateQueries({ queryKey: ['projectFiles', projectId] });
+    } catch (e) {
+      console.error('Failed to upload files:', e);
+    }
+    setIsUploading(false);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
   // Handle drag-drop file move
   const handleMoveFileToFolder = async (fromPath: string, toFolderPath: string) => {
     if (!projectId) return;
@@ -462,15 +499,47 @@ export default function ProjectViewer() {
               <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 Files
               </span>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-6 w-6 p-0"
-                onClick={() => setNewFolderDialog({ parentPath: '', name: '' })}
-                title="New folder"
-              >
-                <FolderPlus className="h-4 w-4" />
-              </Button>
+              <div className="flex items-center gap-0.5">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 w-6 p-0"
+                  onClick={() => setNewFileDialog({ parentPath: '', name: '' })}
+                  title="New file"
+                >
+                  <FilePlus className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 w-6 p-0"
+                  onClick={() => setNewFolderDialog({ parentPath: '', name: '' })}
+                  title="New folder"
+                >
+                  <FolderPlus className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 w-6 p-0"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isUploading}
+                  title="Upload files"
+                >
+                  {isUploading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Upload className="h-4 w-4" />
+                  )}
+                </Button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  multiple
+                  className="hidden"
+                  onChange={(e) => e.target.files && handleUploadFiles(e.target.files)}
+                />
+              </div>
             </div>
             <FileTree
               files={files}
