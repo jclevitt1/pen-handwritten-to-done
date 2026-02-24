@@ -336,10 +336,7 @@ export default function ProjectViewer() {
       const fullPath = newFileDialog.parentPath
         ? `${newFileDialog.parentPath}/${newFileDialog.name}`
         : newFileDialog.name;
-      // Create empty file
-      await api.uploadProjectFiles(projectId, [
-        { path: fullPath, content_base64: btoa(''), mimeType: 'text/plain' },
-      ]);
+      await api.updateFile(projectId, fullPath, '');
       queryClient.invalidateQueries({ queryKey: ['projectFiles', projectId] });
     } catch (e) {
       console.error('Failed to create file:', e);
