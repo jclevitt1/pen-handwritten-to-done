@@ -38,6 +38,17 @@ export interface ProjectFile {
   type?: 'file' | 'folder';  // Explicit type for empty folders
 }
 
+export interface Textbook {
+  textbook_id: string;
+  title: string;
+  author: string;
+  subject: string;
+  edition: string;
+  chapter_count: number;
+  section_count: number;
+  status: string;
+}
+
 export interface Job {
   job_id: string;
   user_id: string;
@@ -146,6 +157,12 @@ class ApiClient {
   // Health check (public)
   async health() {
     return this.request<{ status: string; storage: string }>('/health');
+  }
+
+  // Textbooks
+  async listTextbooks(search?: string) {
+    const params = search ? `?search=${encodeURIComponent(search)}` : '';
+    return this.request<{ textbooks: Textbook[] }>(`/textbooks${params}`);
   }
 
   // Projects

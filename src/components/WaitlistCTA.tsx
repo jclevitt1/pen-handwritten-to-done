@@ -1,41 +1,10 @@
-import { useState } from "react";
 import { motion } from "framer-motion";
-import { ArrowRight, Check } from "lucide-react";
+import { ArrowRight } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { toast } from "sonner";
 
 const WaitlistCTA = () => {
-  const [email, setEmail] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [isSubmitted, setIsSubmitted] = useState(false);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email) return;
-
-    setIsLoading(true);
-    try {
-      const response = await fetch('/api/waitlist', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
-      });
-      const data = await response.json();
-
-      if (data.success) {
-        toast.success("You're on the list! We'll reach out soon.");
-        setEmail("");
-        setIsSubmitted(true);
-      } else {
-        toast.error(data.error || "Something went wrong. Please try again.");
-      }
-    } catch {
-      toast.error("Something went wrong. Please try again.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const navigate = useNavigate();
 
   return (
     <section id="waitlist" className="py-24 md:py-32 relative">
@@ -73,52 +42,21 @@ const WaitlistCTA = () => {
             </motion.div>
 
             <h2 className="text-3xl md:text-4xl font-bold mb-4">
-              Join the <span className="font-handwriting text-gradient">beta</span>
+              Try the <span className="font-handwriting text-gradient">beta</span>
             </h2>
 
             <p className="text-lg text-muted-foreground mb-8">
               Be among the first to turn your handwriting into action.
             </p>
 
-            {isSubmitted ? (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="flex items-center justify-center gap-3 py-4"
-              >
-                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                  <Check className="w-5 h-5 text-primary" />
-                </div>
-                <span className="text-lg">You're on the list!</span>
-              </motion.div>
-            ) : (
-              <form
-                onSubmit={handleSubmit}
-                className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto"
-              >
-                <Input
-                  type="email"
-                  placeholder="Enter your email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="h-12 bg-background border-border text-foreground placeholder:text-muted-foreground"
-                  required
-                />
-                <Button
-                  type="submit"
-                  size="lg"
-                  disabled={isLoading}
-                  className="h-12 px-6 bg-primary text-primary-foreground hover:bg-primary/90 glow-effect whitespace-nowrap"
-                >
-                  {isLoading ? "Joining..." : "Get Early Access"}
-                  <ArrowRight className="ml-2 w-4 h-4" />
-                </Button>
-              </form>
-            )}
-
-            <p className="mt-6 text-sm text-muted-foreground">
-              No spam. Just early access and updates.
-            </p>
+            <Button
+              size="lg"
+              className="h-12 px-8 bg-primary text-primary-foreground hover:bg-primary/90 glow-effect"
+              onClick={() => navigate('/beta-testing')}
+            >
+              Join the Beta
+              <ArrowRight className="ml-2 w-4 h-4" />
+            </Button>
           </div>
         </motion.div>
       </div>

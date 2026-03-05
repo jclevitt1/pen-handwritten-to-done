@@ -65,11 +65,11 @@ const Navbar = () => {
             // Not signed in: show waitlist + sign in
             <>
               <Button
-                asChild
                 size="sm"
                 className="bg-primary text-primary-foreground hover:bg-primary/90"
+                onClick={() => navigate('/beta-testing')}
               >
-                <a href="#waitlist">Join Waitlist</a>
+                Join the Beta
               </Button>
               <Button
                 variant="outline"

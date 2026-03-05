@@ -10,6 +10,8 @@ import Dashboard from "./pages/Dashboard";
 import ProjectViewer from "./pages/ProjectViewer";
 import SignIn from "./pages/SignIn";
 import SignUp from "./pages/SignUp";
+import Textbooks from "./pages/Textbooks";
+import BetaTesting from "./pages/BetaTesting";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -25,6 +27,8 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/project/:projectId" element={<ProjectViewer />} />
+            <Route path="/textbooks" element={<Textbooks />} />
+            <Route path="/beta-testing" element={<BetaTesting />} />
             <Route path="/sign-in/*" element={<SignIn />} />
             <Route path="/sign-up/*" element={<SignUp />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
