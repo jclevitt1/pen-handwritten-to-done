@@ -51,6 +51,13 @@ const steps = [
         >
           jclevitt@usepen.dev
         </a>{' '}
+        or text Jeremy at{' '}
+        <a
+          href="sms:+18185177092"
+          className="text-primary underline underline-offset-2 hover:text-primary/80"
+        >
+          (818) 517-7092
+        </a>{' '}
         with the title, author, and course name and we'll add it.
       </>
     ),
