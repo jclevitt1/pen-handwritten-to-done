@@ -41,9 +41,12 @@ React Router v6. Provider stack: ClerkProvider → QueryClientProvider → Toolt
 - `/` → `Index` — landing page (Hero, HowItWorks, ForStudents, UseCases, WaitlistCTA, Footer)
 - `/dashboard` → `Dashboard` — protected project list with search + Jobs tab
 - `/project/:projectId` → `ProjectViewer` — IDE-like code viewer + AI chat
-- `/textbooks` → `Textbooks` — searchable textbook catalog with request form
+- `/textbooks` → `Textbooks` — searchable textbook catalog with request form (public, no auth required)
+- `/beta-testing` → `BetaTesting` — TestFlight onboarding steps (public, no nav link — shared directly)
 - `/sign-in`, `/sign-up` → Clerk auth components
 - `*` → 404
+
+**Hidden routes:** `/textbooks` and `/beta-testing` have no nav links — they're accessed via direct URL only. The landing page CTA ("Join the Beta") links to `/beta-testing`.
 
 ### Key Pages
 
@@ -64,7 +67,7 @@ Key method groups:
 - **Projects:** CRUD on `/projects`, file listing, upload
 - **Files:** update, delete, move, create folders
 - **Chat:** Two-step async pattern (see below)
-- **Textbooks:** `listTextbooks(search?)`, `requestTextbook(data)`
+- **Textbooks:** `listTextbooks(search?)`
 - **Upload:** direct to S3 via presigned URLs for large files, or base64 via `/upload` for small ones
 - **Tasks:** `listTasks()`, `getTask()`, `pollForCompletion()` for async job tracking
 
@@ -104,7 +107,7 @@ Config in `src/lib/config.ts` — reads from `VITE_*` env vars with fallbacks.
 
 ## Deployment
 
-Cloudflare Pages via `wrangler.toml`. Builds from `dist/`. KV namespace `WAITLIST` for waitlist signups.
+Cloudflare Pages via `wrangler.toml`. Builds from `dist/`. KV namespace `WAITLIST` (legacy, from waitlist era).
 
 ## Lovable Integration
 
